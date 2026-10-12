@@ -1,69 +1,93 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Suspense } from "react";
+import { getUser } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 
-export default function Home() {
+async function HeroCta() {
+  const user = await getUser();
+  const href = user ? "/app" : "/login";
+  const label = user ? "앱으로 이동" : "무료로 시작하기";
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <Link href={href}>
+      <Button size="lg" className="h-12 px-8 text-base">{label}</Button>
+    </Link>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <main className="flex-1">
+      {/* Hero */}
+      <section className="mx-auto max-w-5xl px-4 py-20 sm:py-28 text-center">
+        <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+          유튜브 영상, <span className="text-primary">블로그 글</span>로 10분 안에
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
+          자막 추출 + AI 재구성 + SEO 메타까지 자동. URL 하나만 붙여넣으면 끝.
+        </p>
+        <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Suspense fallback={<Button size="lg" className="h-12 px-8 text-base" disabled>준비 중</Button>}>
+            <HeroCta />
+          </Suspense>
+          <a href="#how" className="text-sm font-medium underline underline-offset-4">작동 방식 보기</a>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <p className="mt-6 text-xs text-muted-foreground">무료로 월 3개까지 변환 · 신용카드 필요 없음</p>
+      </section>
+
+      {/* Before / After */}
+      <section className="mx-auto max-w-5xl px-4 py-12">
+        <h2 className="mb-10 text-center text-2xl font-bold sm:text-3xl">같은 영상, 10배 읽기 쉬운 글로</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="rounded-lg border bg-muted/30 p-6">
+            <div className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Before · 유튜브 자막</div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              &ldquo;어 그래서 뭐냐면 이게 이제 되게 중요한 부분인데 음… 많은 분들이 놓치는 거 같아요 사실 이거를 모르면 나중에 큰일 나거든요 그래서 지금부터 설명드릴 건데…&rdquo;
+            </p>
+          </div>
+          <div className="rounded-lg border bg-background p-6 shadow-sm">
+            <div className="mb-3 text-xs font-medium uppercase tracking-wider text-primary">After · 블로그 글</div>
+            <h3 className="mb-2 font-semibold">많은 사람이 놓치는 중요한 포인트</h3>
+            <p className="text-sm leading-relaxed">
+              이 포인트를 모르면 나중에 큰 문제가 생긴다. 많은 사람이 당장 눈에 보이지 않는다는 이유로 지나치지만, 작은 차이가 결과를 완전히 바꾼다.
+            </p>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* How it works */}
+      <section id="how" className="mx-auto max-w-5xl px-4 py-20">
+        <h2 className="mb-12 text-center text-2xl font-bold sm:text-3xl">3단계로 끝</h2>
+        <div className="grid gap-8 md:grid-cols-3">
+          {[
+            { n: "01", t: "URL 붙여넣기", d: "변환할 유튜브 영상 주소를 입력합니다." },
+            { n: "02", t: "AI가 변환", d: "자막을 추출하고 블로그 글로 재구성합니다." },
+            { n: "03", t: "복사 또는 공유", d: "마크다운 복사, HTML 복사, 공개 URL 공유." },
+          ].map((s) => (
+            <div key={s.n} className="rounded-lg border p-6">
+              <div className="mb-3 text-2xl font-bold text-primary">{s.n}</div>
+              <h3 className="mb-2 font-semibold">{s.t}</h3>
+              <p className="text-sm text-muted-foreground">{s.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="mx-auto max-w-3xl px-4 py-20 text-center">
+        <h2 className="text-3xl font-bold sm:text-4xl">지금 바로 변환해보세요</h2>
+        <p className="mt-4 text-muted-foreground">가입 즉시 월 3개 무료 변환이 제공됩니다.</p>
+        <div className="mt-8">
+          <Suspense fallback={<Button size="lg" className="h-12 px-8 text-base" disabled>준비 중</Button>}>
+            <HeroCta />
+          </Suspense>
+        </div>
+      </section>
+
+      <footer className="border-t py-8">
+        <div className="mx-auto max-w-5xl px-4 text-center text-xs text-muted-foreground">
+          © 2026 TubeToPost
+        </div>
+      </footer>
+    </main>
   );
 }
