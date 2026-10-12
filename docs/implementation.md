@@ -24,12 +24,12 @@ Next.js 로컬 문서에 따라 `src/middleware.ts`를 `src/proxy.ts`로 변경�
 
 - 실제 Supabase 연결 및 매직링크 이메일 수신 통합 검증
 - 재시도 RPC/API, 프로필 API, 결과물 조회·편집 API
-- 워커 연결, 자막/Whisper 추출, LLM 생성, HTML 정제
-- `finalize_job(p_job_id uuid, p_post_data jsonb)` 설계 대기: Claude 지시에 따라 이번 범위에서는 본체와 호출 가능한 skeleton을 추가하지 않는다. 후속 구현에서 service_role 전용으로 결과 저장, done 전이, 월 사용량 증가를 단일 트랜잭션으로 처리하고 중복 완료를 차단한다.
-- 단계별 타임아웃 복구 및 워커 인증
+- 워커 실제 배포와 자막 추출 성공, Supabase/OpenAI 실키 통합 검증. Whisper fallback은 후속 범위.
+- `finalize_job(p_job_id uuid, p_post jsonb)`는 0002에 구현 완료. 실제 DB 적용은 필요하다.
+- 단계별 타임아웃 복구와 재dispatch
 - Claude의 후속 UI 설계를 반영한 화면
 
-현재 작업 생성은 큐에 등록만 한다. 워커 연결 전에는 queued 상태를 유지한다. 서버 키나 외부 서비스 계정은 생성하지 않았다.
+워커 환경변수를 설정하면 작업 생성 후 변환 워커를 호출한다. 미설정 시 queued 상태를 유지한다. 서버 키나 외부 서비스 계정은 생성하지 않았다. 상세 배포·검증 내용은 [워커 안내](worker.md)에 정리했다.
 
 ## 검증
 

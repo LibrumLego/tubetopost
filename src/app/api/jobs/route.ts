@@ -2,6 +2,7 @@ import { apiError, authenticatedClient } from "@/lib/api";
 import { parseYouTubeUrl } from "@/lib/youtube/url";
 import { toJobSummary } from "@/lib/jobs/summary";
 import type { JobSummaryRow } from "@/types/jobs";
+import { after } from "next/server";
 
 export async function POST(request: Request) {
   const client = await authenticatedClient();
@@ -19,6 +20,23 @@ export async function POST(request: Request) {
       case "P0001": return apiError("UNAUTHENTICATED", "로그인이 필요합니다.", 401);
       default: return apiError("INTERNAL", "작업을 생성하지 못했습니다.", 500);
     }
+  }
+  const workerUrl = process.env.SUPABASE_WORKER_URL;
+  const workerKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (workerUrl && workerKey) {
+    after(async () => {
+      try {
+        const response = await fetch(workerUrl, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${workerKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ job_id: data.id }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!response.ok) console.error("[jobs] worker trigger rejected", response.status);
+      } catch { console.error("[jobs] worker trigger failed; job remains queued", data.id); }
+    });
+  } else {
+    console.warn("[jobs] worker not configured; job remains queued", data.id);
   }
   return Response.json({ job: { id: data.id, status: data.status, video_id: data.video_id, created_at: data.created_at } }, { status: 201 });
 }

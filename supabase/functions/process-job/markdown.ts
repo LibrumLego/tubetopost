@@ -1,0 +1,12 @@
+import { marked } from "marked";
+import sanitizeHtml from "sanitize-html";
+
+export function renderMarkdown(markdown: string): string {
+  return sanitizeHtml(marked.parse(markdown, { breaks: true, gfm: true, async: false }) as string, {
+    allowedTags: ["h1", "h2", "h3", "h4", "p", "a", "strong", "em", "ul", "ol", "li", "blockquote", "code", "pre", "hr", "br"],
+    allowedAttributes: { a: ["href", "title", "rel"] },
+    allowedSchemes: ["https", "http"],
+    allowProtocolRelative: false,
+    transformTags: { a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer" }) },
+  });
+}
