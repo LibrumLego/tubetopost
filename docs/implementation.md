@@ -25,8 +25,26 @@ Next.js 로컬 문서에 따라 `src/middleware.ts`를 `src/proxy.ts`로 변경�
 - 실제 Supabase 연결 및 인증 화면
 - 재시도 RPC/API, 프로필 API, 결과물 조회·편집 API
 - 워커 연결, 자막/Whisper 추출, LLM 생성, HTML 정제
-- 결과 저장과 done 전이를 하나의 트랜잭션으로 처리하고 월 사용량을 한 번만 증가시키는 완료 RPC
+- `finalize_job(p_job_id uuid, p_post_data jsonb)` 설계 대기: Claude 지시에 따라 이번 범위에서는 본체와 호출 가능한 skeleton을 추가하지 않는다. 후속 구현에서 service_role 전용으로 결과 저장, done 전이, 월 사용량 증가를 단일 트랜잭션으로 처리하고 중복 완료를 차단한다.
 - 단계별 타임아웃 복구 및 워커 인증
 - Claude의 후속 UI 설계를 반영한 화면
 
 현재 작업 생성은 큐에 등록만 한다. 워커 연결 전에는 queued 상태를 유지한다. 서버 키나 외부 서비스 계정은 생성하지 않았다.
+
+## 검증
+
+- TypeScript, ESLint, Next.js production build 통과
+- 임시 PGlite PostgreSQL에서 마이그레이션 실행, 가입 트리거, 중복 차단, 쿼터 제한, 컬럼 권한, 워커 claim, 다른 사용자 데이터 차단 확인
+- YouTube URL 정상/위조 호스트/잘못된 ID, 상태 전이와 진행률 확인
+- 실제 Supabase 인증·API 통합 테스트 및 다중 DB 세션의 동시성 검증은 연결 후 진행해야 한다.
+
+## 2차 수정 (코드 리뷰 반영)
+
+- `claim_job`을 `setof public.jobs`로 변경: 빈 큐는 0개 행, 작업이 있으면 1개 행 반환. 워커는 응답 배열의 `data[0]` 또는 `data.length`로 판별해야 한다.
+- 목록·단건 조회가 `JobSummary`와 `toJobSummary`를 공유하고 `error: { code, message } | null` 형태로 반환한다.
+- UUID 형식 오류는 `400 INVALID_REQUEST`, 없는 작업은 `404 JOB_NOT_FOUND`로 구분한다.
+- `enqueue_job`의 SQLSTATE를 인증 P0001, 중복 P0002, 쿼터 P0003, 프로필 누락 P0004로 구분하고 API는 코드로 분기한다.
+- `finalize_job`은 지시서에서 허용한 문서화 방식으로 설계 대기를 명시했다.
+- Proxy 매처에서 `api/health`와 ico/txt/xml 정적 파일을 추가 제외한다.
+- 아직 외부 DB에 적용하지 않은 초기 마이그레이션을 수정했다. 기존 0001을 이미 적용한 DB에는 함수 재생성 마이그레이션이 필요하다 (`claim_job` 반환 타입은 CREATE OR REPLACE로 변경할 수 없음).
+- 검증: 타입 검사, ESLint, production build 통과. PGlite에 마이그레이션을 재적용해 빈 큐 0행, 작업 claim 1행/transcribing, 재claim 방지, P0001~P0004, 쿼터와 권한을 확인했다. 공통 요약 함수의 중첩 오류/오류 없음, 내부 필드 제외, 타임스탬프 정밀도 보존도 확인했다.

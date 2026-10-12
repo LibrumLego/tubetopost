@@ -132,9 +132,9 @@ declare
   v_job public.jobs;
   v_active integer;
 begin
-  if v_user is null then raise exception 'UNAUTHENTICATED'; end if;
+  if v_user is null then raise exception using errcode = 'P0001', message = 'UNAUTHENTICATED'; end if;
   select * into v_profile from public.profiles where id = v_user for update;
-  if not found then raise exception 'PROFILE_NOT_FOUND'; end if;
+  if not found then raise exception using errcode = 'P0004', message = 'PROFILE_NOT_FOUND'; end if;
   if v_profile.quota_reset_at <= now() then
     update public.profiles set used_this_month = 0,
       quota_reset_at = date_trunc('month', now() at time zone 'UTC') at time zone 'UTC' + interval '1 month'
@@ -142,11 +142,13 @@ begin
   end if;
   if exists (select 1 from public.jobs where user_id = v_user and video_id = p_video_id
     and status in ('queued', 'transcribing', 'generating', 'finalizing')) then
-    raise exception 'ALREADY_PROCESSING';
+    raise exception using errcode = 'P0002', message = 'ALREADY_PROCESSING';
   end if;
   select count(*) into v_active from public.jobs where user_id = v_user
     and status in ('queued', 'transcribing', 'generating', 'finalizing');
-  if v_profile.used_this_month + v_active >= v_profile.monthly_quota then raise exception 'QUOTA_EXCEEDED'; end if;
+  if v_profile.used_this_month + v_active >= v_profile.monthly_quota then
+    raise exception using errcode = 'P0003', message = 'QUOTA_EXCEEDED';
+  end if;
   insert into public.jobs(user_id, youtube_url, video_id) values (v_user, p_youtube_url, p_video_id) returning * into v_job;
   return v_job;
 end;
@@ -154,16 +156,16 @@ $$;
 revoke all on function public.enqueue_job(text, text) from public;
 grant execute on function public.enqueue_job(text, text) to authenticated;
 
-create function public.claim_job() returns public.jobs
+create function public.claim_job() returns setof public.jobs
 language plpgsql set search_path = '' as $$
 declare v_job public.jobs;
 begin
   select * into v_job from public.jobs where status = 'queued'
     order by created_at, id limit 1 for update skip locked;
-  if not found then return null; end if;
+  if not found then return; end if;
   update public.jobs set status = 'transcribing', started_at = now()
     where id = v_job.id returning * into v_job;
-  return v_job;
+  return next v_job;
 end;
 $$;
 revoke all on function public.claim_job() from public;
