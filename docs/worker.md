@@ -4,12 +4,12 @@
 
 `0002_finalize_job.sql`은 service_role 전용 완료 RPC다. 글 저장, done 전이, 월 사용량 증가를 한 트랜잭션으로 처리한다. 중복 완료는 P0012로 거부하고, slug 충돌과 월 쿼터 리셋도 처리한다.
 
-Next.js는 응답 후 `after`로 워커를 호출한다. 워커는 요청한 job만 조건부 업데이트로 claim한 후 202를 반환하고 `EdgeRuntime.waitUntil`로 작업한다. 일반 사용자 JWT는 거부하며 Authorization 헤더가 서비스 키와 정확히 일치해야 한다.
+Next.js는 응답 후 `after`로 워커를 호출한다. 워커는 요청한 job만 조건부 업데이트로 claim한 후 202를 반환하고 `EdgeRuntime.waitUntil`로 작업한다. Authorization 헤더는 전용 공유 시크릿 `WORKER_SECRET`과 일치해야 한다. 일반 사용자 JWT와 DB 서비스 키는 워커 호출 인증으로 허용하지 않는다.
 
 1. 연결된 Supabase DB에 0001과 0002를 순서대로 적용한다. 기존에 적용한 0001은 다시 실행하지 않는다.
 2. Edge Function secrets에 `OPENAI_API_KEY`를 설정한다. 기본 모델은 지시서의 `gpt-4o-mini`, 변경은 `OPENAI_MODEL`로 한다. `SUPABASE_URL`과 `SUPABASE_SERVICE_ROLE_KEY`는 플랫폼 기본 secret이다.
 3. `supabase functions deploy process-job` 실행. config.toml의 verify_jwt=false는 함수 내부 서비스 키 검증과 함께 사용한다.
-4. Next.js 서버 환경에 `SUPABASE_WORKER_URL=https://<project-ref>.supabase.co/functions/v1/process-job`과 `SUPABASE_SERVICE_ROLE_KEY`를 설정한다. 클라이언트 공개 변수로 설정하지 않는다.
+4. Next.js 서버 환경에 `SUPABASE_WORKER_URL=https://<project-ref>.supabase.co/functions/v1/process-job`과 `SUPABASE_SERVICE_ROLE_KEY`를 설정한다. 32자 이상의 랜덤 `WORKER_SECRET`을 Next.js와 Edge Function secrets에 동일하게 설정한다. 클라이언트 공개 변수로 설정하지 않는다.
 5. 로그인 후 작업 생성 → done 전이, 결과 글 1개와 쿼터 증가를 확인한다.
 
 각 LLM 호출의 토큰 사용량을 기록한다. 비용 추정에는 Edge secret `OPENAI_INPUT_USD_PER_MILLION`, `OPENAI_OUTPUT_USD_PER_MILLION`에 해당 모델 요율을 설정한다. 미설정 시 cost_usd는 0으로 실제 청구 금액을 뜻하지 않는다.
@@ -24,12 +24,29 @@ deno run --config supabase/functions/process-job/deno.json --allow-net supabase/
 
 Next.js 타입 검사에서 Deno 디렉터리는 제외하고 Deno 자체 검사로 검증한다. 의존성은 deno.json과 deno.lock에 고정한다.
 
+`node scripts/check-worker.mjs`는 잘못된 job ID로 배포된 함수의 인증을 확인한다. 잘못된 인증은 401, 올바른 공유 시크릿은 ID 검증 오류 400이어야 한다. 실제 작업 생성이나 LLM 호출은 하지 않는다.
+
 - PGlite: 완료 트랜잭션, invalid payload rollback, 상태 검증, 중복 완료, slug 충돌, 월 쿼터 리셋, 호출 권한 통과.
 - Deno: 타입 검사와 테스트 9개 통과. 인증, 자막 파싱, HTML 정제, mocked 정상 완료/자막 없음/중복/DB claim 실패/LLM 실패 확인.
 - Next.js: 타입 검사, lint, production build 통과.
 - 실제 유튜브 dQw4w9WgXcQ PoC는 CAPTIONS_UNAVAILABLE로 실패했다. 비공식 자막 API의 실제 성공과 Supabase/OpenAI 실키 E2E는 미검증이다.
 
 ## 현재 제한
+
+### 2026-10-13 실제 검증
+
+- 배포된 워커 인증 probe: 잘못된 시크릿 401, 올바른 시크릿과 잘못된 작업 ID 400.
+- 매직링크 로그인 후 TED 영상 `arj7oStGLkU` 작업 생성은 201, 워커 결과는 `failed / NO_TRANSCRIPT`. 변환 완료 E2E는 미통과.
+- 로컬 진단에서 영상 페이지 200, 자막 트랙 50개, 자막 URL의 `exp=xpe`, 자막 응답 200과 빈 본문을 확인했다. PO Token 제한과 부합하지만 그 원인만으로 확정하지 않는다.
+- `deno run --config supabase/functions/process-job/deno.json --allow-net supabase/functions/process-job/transcript-diagnostic.ts arj7oStGLkU`로 응답 상태와 본문 길이를 확인한다. 자막 URL과 서명은 출력하지 않는다.
+- 오르카 숨겨진 탭의 `document.visibilityState=hidden`, 애니메이션 프레임 0회, React 스트리밍 갱신 대기 상태를 확인했다. `orca tab switch --page <id> --focus --json`으로 표시하자 실패 결과가 정상 렌더링됐다. 해당 빈 화면은 세션 소실이 아니었다.
+
+### 2026-10-14 후속 검증과 다음 범위
+
+- `pnpm worker:check`로 배포된 함수 인증을 확인하고, `pnpm diag:transcript <video-id>`로 자막 응답을 진단한다. Deno가 PATH에 있어야 한다.
+- 시연 후보 `arj7oStGLkU`, `zQnBQ4tB3ZA`, `rfscVS0vtbw`를 로컬에서 확인했다. 자막 트랙은 각각 50개, 1개, 14개였지만, 선택된 자막은 모두 `exp=xpe`, HTTP 200, 본문 0바이트였다. 이 후보들을 변환 성공 영상으로 추천하지 않는다.
+- 현재 범위는 기존 자막 경로의 진단과 정확한 실패 안내다. 성공하는 시연 영상은 아직 확보하지 못했으며, 영상 교체만으로 해결된다는 근거도 없다.
+- 실제 서비스의 변환 성공을 위해 별도 자막 공급 경로나 오디오 전사 fallback을 설계·검증해야 한다. InnerTube ANDROID나 Whisper는 이번 변경에서 도입하지 않았다. 공급 경로가 실제 자막을 반환한 뒤 LLM 생성, 완료 RPC, 결과 편집과 공개 조회 E2E를 검증해야 한다.
 
 ASR도 DB enum에 맞는 youtube_captions로 기록한다. 자막 없는 영상의 Whisper fallback은 이번 MVP에 포함하지 않는다. 자막 50,000자 초과는 거부한다. 긴 영상 요약 체인은 후속 작업이다.
 

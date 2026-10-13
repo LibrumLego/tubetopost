@@ -29,7 +29,7 @@ const STATUS_MESSAGES: Record<JobStatus, string> = {
 };
 
 const FAILURE_MESSAGES: Record<string, string> = {
-  NO_TRANSCRIPT: "이 영상은 자막이 없어서 변환할 수 없어요. 자막이 있는 다른 영상을 시도해 주세요.",
+  NO_TRANSCRIPT: "자막을 가져오지 못했어요. 자막이 있어도 YouTube에서 자동 추출을 제한할 수 있습니다. 다른 영상을 시도해 주세요.",
   GENERATION_FAILED: "AI 생성에 일시적인 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
   INTERNAL: "일시적인 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",
 };
@@ -47,9 +47,17 @@ export function JobPolling({ initialJob }: { initialJob: JobDetail }) {
     }
     let cancelled = false;
     const interval = setInterval(async () => {
+      if (cancelled) return;
       try {
         const res = await fetch(`/api/jobs/${job.id}`, { cache: "no-store" });
-        if (!res.ok || cancelled) return;
+        if (cancelled) return;
+        if (res.status === 404) {
+          cancelled = true;
+          clearInterval(interval);
+          router.replace("/app");
+          return;
+        }
+        if (!res.ok) return;
         const data = await res.json();
         setJob(data.job);
       } catch {
