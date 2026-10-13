@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PostEditor } from "./post-editor";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default async function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
+async function EditPostContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
 
@@ -34,4 +35,8 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
       appUrl={appUrl}
     />
   );
+}
+
+export default function EditPostPage(props: { params: Promise<{ id: string }> }) {
+  return <Suspense fallback={<p role="status" className="p-6">편집할 글을 불러오고 있습니다…</p>}><EditPostContent {...props} /></Suspense>;
 }

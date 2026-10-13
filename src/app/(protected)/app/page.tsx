@@ -1,11 +1,12 @@
 import { requireUser } from "@/lib/auth";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { toJobSummary } from "@/lib/jobs/summary";
 import type { JobSummaryRow } from "@/types/jobs";
 import { ConvertForm } from "./convert-form";
 import { JobCard } from "./job-card";
 
-export default async function AppPage() {
+async function AppContent() {
   const user = await requireUser();
   const supabase = await createClient();
 
@@ -55,4 +56,8 @@ export default async function AppPage() {
       </section>
     </div>
   );
+}
+
+export default function AppPage() {
+  return <Suspense fallback={<p role="status" className="p-6">작업 목록을 불러오고 있습니다…</p>}><AppContent /></Suspense>;
 }
