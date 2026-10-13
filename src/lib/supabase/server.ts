@@ -1,7 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 export async function createClient() {
+  // Auth SDK initialization reads the clock; run it only for a real request.
+  await connection();
   const cookieStore = await cookies();
 
   return createServerClient(

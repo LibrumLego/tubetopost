@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { jobProgress } from "@/lib/jobs/state";
@@ -7,7 +8,7 @@ import { JobPolling } from "./job-polling";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+async function JobDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
 
@@ -37,4 +38,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   };
 
   return <JobPolling initialJob={initialJob} />;
+}
+
+export default function JobDetailPage(props: { params: Promise<{ id: string }> }) {
+  return <Suspense fallback={<p role="status" className="p-6">변환 상태를 불러오고 있습니다…</p>}><JobDetailContent {...props} /></Suspense>;
 }
