@@ -11,9 +11,11 @@ export async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const url = Deno.env.get("SUPABASE_URL");
-  if (!key || !url) return json({ error: "NOT_CONFIGURED" }, 503);
-  // JWT gateway validation alone would also permit ordinary user JWTs.
-  if (request.headers.get("authorization") !== `Bearer ${key}`) return json({ error: "UNAUTHORIZED" }, 401);
+  const workerSecret = Deno.env.get("WORKER_SECRET");
+  if (!key || !url || !workerSecret) return json({ error: "NOT_CONFIGURED" }, 503);
+  // Use a dedicated shared secret because Supabase auto-injected keys
+  // may not match the Legacy JWT the Next.js app has in its env.
+  if (request.headers.get("authorization") !== `Bearer ${workerSecret}`) return json({ error: "UNAUTHORIZED" }, 401);
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) return json({ error: "NOT_CONFIGURED" }, 503);
   let jobId: string;

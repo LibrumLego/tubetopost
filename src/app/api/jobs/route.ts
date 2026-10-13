@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     }
   }
   const workerUrl = process.env.SUPABASE_WORKER_URL;
-  const workerKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const workerKey = process.env.WORKER_SECRET;
   if (workerUrl && workerKey) {
     after(async () => {
       try {

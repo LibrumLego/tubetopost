@@ -38,6 +38,11 @@ const required = {
 };
 
 const optional = {
+  WORKER_SECRET: {
+    description: "서버와 Edge Function이 공유하는 워커 인증 시크릿",
+    validate: (v) => v.length >= 32 && !v.startsWith("TODO_"),
+    hint: "32자 이상 랜덤 값, Edge Function WORKER_SECRET과 동일하게 설정",
+  },
   SUPABASE_WORKER_URL: {
     description: "Edge Function worker URL (Phase 5 이후)",
     validate: (v) => v === "" || /^https:\/\/[a-z0-9]+\.supabase\.co\/functions\/v1\/process-job$/.test(v),
@@ -77,7 +82,6 @@ for (const [key, { description, validate, hint }] of Object.entries(required)) {
     hasError = true;
   } else if (!validate(value)) {
     console.log(`⚠️  ${key} 형식이 이상합니다`);
-    console.log(`   현재 값: ${value.slice(0, 30)}${value.length > 30 ? "..." : ""}`);
     console.log(`   💡 ${hint}\n`);
     hasError = true;
   } else {
@@ -90,6 +94,12 @@ console.log("");
 for (const [key, { description, validate, hint }] of Object.entries(optional)) {
   const value = env[key] ?? "";
   if (!value) {
+    if (key === "WORKER_SECRET" && env.SUPABASE_WORKER_URL) {
+      console.log(`❌ ${key} — 워커 URL 설정 시 필수`);
+      console.log(`   💡 ${hint}`);
+      hasError = true;
+      continue;
+    }
     console.log(`⏭️  ${key} (선택) — ${description}`);
     hasWarn = true;
   } else if (!validate(value)) {

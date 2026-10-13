@@ -27,14 +27,19 @@ Deno.test("LLM output schemas reject malformed structures", () => {
 });
 
 Deno.test("worker authenticates before DB access and validates request", async () => {
+  Deno.env.set("WORKER_SECRET", "test-worker-secret");
   Deno.env.set("SUPABASE_URL", "https://db.example.com"); Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "test-key"); Deno.env.set("OPENAI_API_KEY", "test-openai");
   assert((await handler(new Request("https://worker", { method: "GET" }))).status === 405);
   assert((await handler(new Request("https://worker", { method: "POST", headers: { Authorization: "Bearer user-jwt" } }))).status === 401);
-  assert((await handler(new Request("https://worker", { method: "POST", headers: { Authorization: "Bearer test-key" }, body: '{"job_id":"bad"}' }))).status === 400);
+  assert((await handler(new Request("https://worker", { method: "POST", headers: { Authorization: "Bearer test-key" }, body: '{"job_id":"bad"}' }))).status === 401);
+  assert((await handler(new Request("https://worker", { method: "POST", headers: { Authorization: "Bearer test-worker-secret" }, body: '{"job_id":"bad"}' }))).status === 400);
+  Deno.env.delete("WORKER_SECRET");
+  assert((await handler(new Request("https://worker", { method: "POST" }))).status === 503);
 });
 
 for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "llm_error"] as const) {
   Deno.test(`worker mocked pipeline: ${scenario}`, async () => {
+    Deno.env.set("WORKER_SECRET", "test-worker-secret");
     Deno.env.set("SUPABASE_URL", "https://db.example.com"); Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "test-key"); Deno.env.set("OPENAI_API_KEY", "test-openai");
     const original = globalThis.fetch;
     const jobId = "11111111-1111-4111-8111-111111111111";
@@ -66,7 +71,7 @@ for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "l
       throw new Error(`Unexpected request ${request.url}`);
     };
     try {
-      const response = await handler(new Request("https://worker", { method: "POST", headers: { Authorization: "Bearer test-key" }, body: JSON.stringify({ job_id: jobId }) }));
+      const response = await handler(new Request("https://worker", { method: "POST", headers: { Authorization: "Bearer test-worker-secret" }, body: JSON.stringify({ job_id: jobId }) }));
       if (scenario === "success") assert(finalized && states.join(",") === "transcribing,generating,finalizing" && calls === 6, `states=${states} calls=${calls} finalized=${finalized}`);
       else if (scenario === "duplicate") assert(!finalized && states.length === 1);
       else if (scenario === "claim_error") assert(response.status === 500 && !finalized);
