@@ -4,7 +4,7 @@ Supadata native 자막을 우선 사용하고 제공자가 자막을 제공하�
 
 ## 배포
 
-1. `supabase/migrations`를 번호 순서대로 적용한다. 적용된 파일은 다시 실행하지 않는다. 현재 원격 DB에는 0006까지 적용되어 있다.
+1. `supabase/migrations`를 번호 순서대로 적용한다. 적용된 파일은 다시 실행하지 않는다. 현재 원격 DB에는 0007까지 적용되어 있다.
 2. Edge secrets에 `OPENAI_API_KEY`, `OPENAI_MODEL`, 입력·출력 단가, `SUPADATA_API_KEY`, `WORKER_SECRET`을 설정한다. 단가는 모델에 맞춰야 한다. Supabase URL과 service role key는 플랫폼이 제공한다.
 3. `pnpm sb:deploy`로 배포한다. `verify_jwt=false`와 함수 내부 worker secret 검증을 함께 사용한다.
 4. Next.js에 `SUPABASE_WORKER_URL`, `SUPABASE_SERVICE_ROLE_KEY`, 동일한 `WORKER_SECRET`을 설정한다. 키와 secret은 공개 환경변수로 설정하지 않는다.

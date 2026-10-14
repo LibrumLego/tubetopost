@@ -13,7 +13,7 @@ async function AppContent() {
   if (recovered.error) throw new Error("JOB_RECOVERY_FAILED");
 
   const [profileRes, jobsRes] = await Promise.all([
-    supabase.from("profiles").select("monthly_quota, used_this_month").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("plan, monthly_quota, used_this_month").eq("id", user.id).maybeSingle(),
     supabase
       .from("jobs")
       .select("id,status,video_id,video_title,video_thumbnail_url,post_id,error_code,error_message,created_at")
@@ -35,7 +35,7 @@ async function AppContent() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">변환 시작</h1>
           <p className="text-sm text-muted-foreground">
-            이번 달 <span className="font-medium text-foreground">{usedThisMonth}/{monthlyQuota}</span> 사용
+            {profileRes.data?.plan === "developer" ? "개발자 테스트 · " : ""}이번 달 <span className="font-medium text-foreground">{usedThisMonth}/{monthlyQuota}</span> 사용
           </p>
         </div>
         <ConvertForm quotaRemaining={quotaRemaining} />
