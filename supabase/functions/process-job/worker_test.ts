@@ -1,7 +1,7 @@
 import { extractPlayer, parseCaptions } from "./transcript.ts";
 import { renderMarkdown } from "./markdown.ts";
 import { handler } from "./handler.ts";
-import { isOutline, isSeoMeta } from "./llm.ts";
+import { isOutline, isSeoMeta, normalizeSeoSlug } from "./llm.ts";
 import { parseSupadata } from "./supadata.ts";
 
 function assert(condition: unknown, message = "Assertion failed"): asserts condition { if (!condition) throw new Error(message); }
@@ -25,6 +25,15 @@ Deno.test("rendered HTML removes scripts, handlers and dangerous link schemes", 
 Deno.test("LLM output schemas reject malformed structures", () => {
   assert(!isOutline({ title: "title", sections: [{ heading: "bad" }] }));
   assert(!isSeoMeta({ meta_title: "title", meta_description: "desc", keywords: [], slug_suggestion: "../bad" }));
+});
+
+Deno.test("SEO slug length is bounded locally without accepting unsafe paths", () => {
+  const value = { meta_title: "title", meta_description: "desc", keywords: ["a", "b", "c", "d", "e"], slug_suggestion: "understanding-procrastination" };
+  normalizeSeoSlug(value);
+  assert(isSeoMeta(value) && value.slug_suggestion.length <= 20);
+  value.slug_suggestion = "../unsafe";
+  normalizeSeoSlug(value);
+  assert(!isSeoMeta(value));
 });
 
 Deno.test("worker authenticates before DB access and validates request", async () => {

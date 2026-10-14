@@ -1,5 +1,16 @@
 # 전사 공급 PoC 로그
 
+## 2026-10-14: Supadata 통합 E2E 통과
+
+- 마이그레이션 0004를 실제 DB에 적용하고 카탈로그의 CHECK 확장 및 적용 이력을 확인했다. 공급자 키는 값 출력 없이 Edge Function Secrets에 설정했다.
+- 첫 통합 작업 `e170cb0d-a865-4a38-83d4-7b36503c8bc1`: Supadata 자막 12,671자 확보, 이후 GENERATION_FAILED. OpenAI 키 동일성 및 짧은 호출 200을 확인했고, 생성 호출 9건이 기록됐다. 마지막 JSON 검증 실패 가능성을 검토해 유효한 영문 SEO slug의 길이를 서버에서 제한하도록 보완했다. 이전 실패의 정확한 원본 JSON은 보관하지 않아 단정하지 않는다.
+- 성공 영상: `arj7oStGLkU`. 작업 `5f8327bf-c152-498c-99f2-b62b7f4186f6`, 결과 글 `6a3def0c-8397-4888-822d-456efc94ee6e`, slug `procrastination-and`.
+- 실제 앱 요청 후 `done / transcript_source=supadata`, 글 정확히 1건, 월 사용량 0→1, 워커 처리 시간 28.237172초 확인.
+- 편집 화면 자동 이동 확인. 제목을 `미루는 습관의 심리: 팀 어반 TED 강연`으로 수정하고 저장됨 확인. 공개 토글 저장과 DB `is_public=true` 확인. Markdown은 4,706자다.
+- 세션 쿠키 없는 별도 HTTP 클라이언트로 `/post/procrastination-and` 요청: HTTP 200, 수정된 제목·본문·og:title 모두 확인. 비로그인 브라우저 시각 검증을 대체한 비인증 HTTP 검증이며 UA는 PowerShell 기본값이다.
+- 성공 작업 OpenAI 로그의 추정 비용 합계 $0.004732. 최초 실패 작업과 별도 짧은 API 진단 호출은 이 금액에 포함하지 않는다. Supadata native는 성공 작업당 1회 요청이며 실제 크레딧 청구는 공급자 대시보드 확인 대상이다.
+- 자동 검증: production build(TypeScript 포함), ESLint, 환경 점검, Deno 테스트 17개 통과. 재배포 후 worker:check 401/400 통과.
+
 ## 2026-10-14: 실제 PoC-A 통과
 
 실행자: Codex. Supadata 로그인과 온보딩 후 발급된 키를 `.env.local`에 설정하고 `pnpm poc:supadata` 실행. 키와 자막 내용은 로그에 출력하지 않았다.

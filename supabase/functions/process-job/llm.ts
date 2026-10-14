@@ -27,7 +27,11 @@ export function createGenerator(apiKey: string, recordUsage: (model: string, inp
   async function jsonCall<T>(system: string, user: string, validate: (value: unknown) => value is T): Promise<T> {
     for (let attempt = 0; attempt < 2; attempt++) {
       const text = await call(system, user, true);
-      try { const value = JSON.parse(text); if (validate(value)) return value; } catch { /* Retry malformed JSON once. */ }
+      try {
+        const value = JSON.parse(text);
+        if (validate === isSeoMeta) normalizeSeoSlug(value);
+        if (validate(value)) return value;
+      } catch { /* Retry malformed JSON once. */ }
     }
     throw new LlmError("INVALID_JSON_RESPONSE");
   }
@@ -62,6 +66,11 @@ export function createGenerator(apiKey: string, recordUsage: (model: string, inp
 
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }
 function strings(value: unknown): value is string[] { return Array.isArray(value) && value.every((v) => typeof v === "string" && v.trim().length > 0); }
+export function normalizeSeoSlug(value: unknown) {
+  if (object(value) && typeof value.slug_suggestion === "string" && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value.slug_suggestion)) {
+    value.slug_suggestion = value.slug_suggestion.slice(0, 20).replace(/-+$/, "");
+  }
+}
 export function isOutline(value: unknown): value is Outline {
   return object(value) && typeof value.title === "string" && value.title.trim().length > 0 && value.title.length <= 200
     && Array.isArray(value.sections) && value.sections.length >= 4 && value.sections.length <= 7
