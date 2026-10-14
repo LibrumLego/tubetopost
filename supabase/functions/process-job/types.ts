@@ -1,4 +1,5 @@
 export interface Segment { start: number; text: string }
+export type TranscriptSource = "youtube_captions" | "whisper" | "supadata";
 export interface Section {
   heading: string;
   points: string[];

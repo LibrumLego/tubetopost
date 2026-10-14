@@ -38,6 +38,11 @@ const required = {
 };
 
 const optional = {
+  SUPADATA_API_KEY: {
+    description: "Supadata 자막 공급 키 (로컬 PoC와 Edge Function Secrets)",
+    validate: (v) => /^sd_[A-Za-z0-9_-]{20,}$/.test(v),
+    hint: "Supadata에서 발급한 API 키, Edge Function Secrets에도 별도 설정",
+  },
   WORKER_SECRET: {
     description: "서버와 Edge Function이 공유하는 워커 인증 시크릿",
     validate: (v) => v.length >= 32 && !v.startsWith("TODO_"),
