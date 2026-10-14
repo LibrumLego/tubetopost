@@ -14,7 +14,7 @@ async function EditPostContent({ params }: { params: Promise<{ id: string }> }) 
   const supabase = await createClient();
   const { data } = await supabase
     .from("posts")
-    .select("id,user_id,slug,title,content_markdown,content_html,is_public")
+    .select("id,user_id,slug,title,content_markdown,content_html,is_public,revision")
     .eq("id", id)
     .maybeSingle();
 
@@ -25,6 +25,7 @@ async function EditPostContent({ params }: { params: Promise<{ id: string }> }) 
   return (
     <PostEditor
       initialPost={{
+        revision: data.revision as number,
         id: data.id as string,
         slug: data.slug as string,
         title: data.title as string,

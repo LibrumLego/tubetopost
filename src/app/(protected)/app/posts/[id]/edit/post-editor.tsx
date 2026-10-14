@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 interface Post {
+  revision: number;
   id: string;
   slug: string;
   title: string;
@@ -23,48 +24,67 @@ export function PostEditor({ initialPost, appUrl }: { initialPost: Post; appUrl:
   const [markdown, setMarkdown] = useState(initialPost.content_markdown);
   const [html, setHtml] = useState(initialPost.content_html);
   const [isPublic, setIsPublic] = useState(initialPost.is_public);
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const [retrySave, setRetrySave] = useState(0);
   const [copyLabel, setCopyLabel] = useState<"Markdown 복사" | "복사됨!">("Markdown 복사");
   const [isDeleting, startDelete] = useTransition();
   const router = useRouter();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSaved = useRef({ title: initialPost.title, markdown: initialPost.content_markdown });
+  const lastSaved = useRef({ title: initialPost.title, markdown: initialPost.content_markdown, isPublic: initialPost.is_public });
+  const latest = useRef({ title: initialPost.title, markdown: initialPost.content_markdown, isPublic: initialPost.is_public });
+  const revision = useRef(initialPost.revision);
+  const saveChain = useRef<Promise<void>>(Promise.resolve());
+  const blocked = useRef(false);
+  const inFlight = useRef(false);
 
   useEffect(() => {
-    if (title === lastSaved.current.title && markdown === lastSaved.current.markdown) return;
+    latest.current = { title, markdown, isPublic };
+    if (!inFlight.current && title === lastSaved.current.title && markdown === lastSaved.current.markdown && isPublic === lastSaved.current.isPublic) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveState("idle");
-    saveTimer.current = setTimeout(async () => {
-      setSaveState("saving");
-      try {
-        const patch: Record<string, unknown> = {};
-        if (title !== lastSaved.current.title) patch.title = title;
-        if (markdown !== lastSaved.current.markdown) patch.content_markdown = markdown;
-        const res = await fetch(`/api/posts/${initialPost.id}`, {
+    const snapshot = { title, markdown, isPublic };
+    saveTimer.current = setTimeout(() => {
+      saveChain.current = saveChain.current.then(async () => {
+        if (blocked.current) return;
+        inFlight.current = true;
+        setSaveState("saving"); setSaveError(null);
+        try {
+          const res = await fetch(`/api/posts/${initialPost.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(patch),
+          body: JSON.stringify({ title: snapshot.title, content_markdown: snapshot.markdown, is_public: snapshot.isPublic, expected_revision: revision.current }),
+          signal: AbortSignal.timeout(15000),
         });
-        if (!res.ok) { setSaveState("error"); return; }
         const data = await res.json();
-        if (data.post?.content_html) setHtml(data.post.content_html);
-        lastSaved.current = { title, markdown };
-        setSaveState("saved");
-      } catch { setSaveState("error"); }
+          if (!res.ok) {
+            blocked.current = true; setConflict(res.status === 409);
+            setSaveError(data.error?.message ?? "저장하지 못했습니다."); setSaveState("error"); return;
+          }
+          revision.current = data.post.revision;
+          lastSaved.current = snapshot;
+          if (latest.current.markdown === snapshot.markdown && data.post?.content_html) setHtml(data.post.content_html);
+          const isLatest = JSON.stringify(latest.current) === JSON.stringify(snapshot);
+          setSaveState(isLatest ? "saved" : "idle");
+        } catch {
+          blocked.current = true; setSaveError("연결 문제로 저장 결과를 확인하지 못했습니다. 변경 내용은 화면에 남아 있습니다."); setSaveState("error");
+        } finally { inFlight.current = false; }
+      });
     }, 1500);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [title, markdown, initialPost.id]);
+  }, [title, markdown, isPublic, initialPost.id, retrySave]);
 
-  async function togglePublic(next: boolean) {
+  useEffect(() => {
+    function protect(e: BeforeUnloadEvent) {
+      if (inFlight.current || JSON.stringify(latest.current) !== JSON.stringify(lastSaved.current)) { e.preventDefault(); }
+    }
+    window.addEventListener("beforeunload", protect);
+    return () => window.removeEventListener("beforeunload", protect);
+  }, []);
+
+  function togglePublic(next: boolean) {
     setIsPublic(next);
-    try {
-      const res = await fetch(`/api/posts/${initialPost.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_public: next }),
-      });
-      if (!res.ok) setIsPublic(!next);
-    } catch { setIsPublic(!next); }
   }
 
   async function copyMarkdown() {
@@ -86,7 +106,7 @@ export function PostEditor({ initialPost, appUrl }: { initialPost: Post; appUrl:
     });
   }
 
-  const saveLabel = { idle: " ", saving: "저장 중…", saved: "저장됨", error: "저장 실패" }[saveState];
+  const saveLabel = { idle: "변경 사항 저장 대기…", saving: "저장 중…", saved: "저장됨", error: "저장 실패" }[saveState];
   const publicUrl = `${appUrl}/post/${initialPost.slug}`;
 
   return (
@@ -95,6 +115,12 @@ export function PostEditor({ initialPost, appUrl }: { initialPost: Post; appUrl:
         <a href="/app" className="text-sm text-muted-foreground hover:underline">← 작업 목록으로</a>
         <span className="text-xs text-muted-foreground" aria-live="polite">{saveLabel}</span>
       </div>
+      {saveError && <div role="alert" className="rounded border border-destructive p-3 text-sm">
+        <p>{saveError}</p>
+        {conflict ? <Button variant="outline" onClick={() => { if (confirm("화면의 변경을 버리고 최신 글을 불러올까요?")) location.reload(); }}>최신 글 불러오기</Button>
+          : <Button variant="outline" onClick={() => { blocked.current = false; setRetrySave(n => n + 1); }}>저장 다시 시도</Button>}
+        <p>화면의 Markdown을 복사해 변경 내용을 보관할 수 있습니다.</p>
+      </div>}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* 편집 */}

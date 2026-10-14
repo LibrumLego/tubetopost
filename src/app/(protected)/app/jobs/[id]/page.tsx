@@ -14,9 +14,11 @@ async function JobDetailContent({ params }: { params: Promise<{ id: string }> })
 
   await requireUser();
   const supabase = await createClient();
+  const recovered = await supabase.rpc("recover_my_jobs");
+  if (recovered.error) throw new Error("JOB_RECOVERY_FAILED");
   const { data } = await supabase
     .from("jobs")
-    .select("id,status,video_id,video_title,video_thumbnail_url,post_id,error_code,error_message,created_at,transcript_source")
+    .select("id,status,video_id,video_title,video_thumbnail_url,post_id,error_code,error_message,created_at,transcript_source,retry_count")
     .eq("id", id)
     .maybeSingle();
 
@@ -24,6 +26,7 @@ async function JobDetailContent({ params }: { params: Promise<{ id: string }> })
 
   const status = data.status as JobStatus;
   const initialJob = {
+    retry_count: data.retry_count as number,
     id: data.id as string,
     status,
     video_id: data.video_id as string,

@@ -52,6 +52,6 @@ pnpm diag:transcript <video-id>
 - [시연 후보 9개 검증 결과](docs/demo-videos.md)
 - [이전 구현 기록](docs/implementation.md)
 
-## 남은 작업
+## 안정성 개선과 남은 작업
 
-현재 경로는 Supadata native 우선, 공급자 미설정·자막 없음 등은 YouTube 직접 추출로 fallback합니다. `SUPADATA_API_KEY`는 Edge Function Secrets에 설정합니다. AI 전사·내구성 큐·자동 재시도는 후속 작업입니다. 인증된 결과 페이지에는 로딩 경계를 두고, 추출 제한을 자막 부재로 단정하지 않도록 안내합니다. 오르카 숨겨진 브라우저 탭은 프레임 갱신이 멈출 수 있으므로 시연 시 브라우저를 화면에 표시합니다.
+현재 경로는 Supadata native 우선이며 공급자 미설정·자막 없음 등은 YouTube 직접 추출로 fallback합니다. `SUPADATA_API_KEY`는 Edge Function Secrets에 설정합니다. 만료 작업 복구·수동 재시도·구조화 출력·편집 충돌 방지·비용 제한을 구현하고 배포했습니다. [운영 및 실제 검증 기록](docs/reliability.md)을 참고하세요. AI 전사·영속 큐·자동 재실행은 후속 작업입니다. 오르카 숨겨진 브라우저 탭은 프레임 갱신이 멈출 수 있으므로 시연 시 브라우저를 화면에 표시합니다.

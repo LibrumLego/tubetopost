@@ -9,6 +9,8 @@ import { JobCard } from "./job-card";
 async function AppContent() {
   const user = await requireUser();
   const supabase = await createClient();
+  const recovered = await supabase.rpc("recover_my_jobs");
+  if (recovered.error) throw new Error("JOB_RECOVERY_FAILED");
 
   const [profileRes, jobsRes] = await Promise.all([
     supabase.from("profiles").select("monthly_quota, used_this_month").eq("id", user.id).maybeSingle(),

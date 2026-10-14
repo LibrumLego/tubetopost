@@ -62,3 +62,34 @@ export async function fetchTranscript(videoId: string) {
     throw new TranscriptError("CAPTIONS_UNAVAILABLE");
   }
 }
+
+export async function fetchYoutubeDuration(videoId: string) {
+  try {
+    const key = Deno.env.get("SUPADATA_API_KEY");
+    if (key) {
+      const url = new URL("https://api.supadata.ai/v1/metadata");
+      url.searchParams.set("url", `https://www.youtube.com/watch?v=${videoId}`);
+      const response = await fetch(url, { headers: { "x-api-key": key }, redirect: "error", signal: AbortSignal.timeout(15000) });
+      if (response.status === 429) throw new TranscriptError("SUPADATA_LIMITED");
+      if (!response.ok) throw new TranscriptError("DURATION_UNAVAILABLE");
+      const data = await response.json();
+      const duration = data.media?.duration;
+      if (data.platform !== "youtube" || data.id !== videoId || typeof duration !== "number" || !Number.isFinite(duration) || duration <= 0) throw new TranscriptError("DURATION_UNAVAILABLE");
+      if (duration > 1200) throw new TranscriptError("VIDEO_TOO_LONG");
+      // Metadata + transcript share the free plan's one-request-per-second limit.
+      await new Promise(resolve => setTimeout(resolve, 1100));
+      return Math.ceil(duration);
+    }
+    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: { "User-Agent": "Mozilla/5.0", "Accept-Language": "ko,en;q=0.8" }, signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) throw new Error();
+    const duration = Number(extractPlayer(await response.text()).videoDetails?.lengthSeconds);
+    if (!Number.isInteger(duration) || duration <= 0) throw new Error();
+    if (duration > 1200) throw new TranscriptError("VIDEO_TOO_LONG");
+    return duration;
+  } catch (error) {
+    if (error instanceof TranscriptError) throw error;
+    throw new TranscriptError("DURATION_UNAVAILABLE");
+  }
+}

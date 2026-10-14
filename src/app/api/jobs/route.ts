@@ -2,7 +2,7 @@ import { apiError, authenticatedClient } from "@/lib/api";
 import { parseYouTubeUrl } from "@/lib/youtube/url";
 import { toJobSummary } from "@/lib/jobs/summary";
 import type { JobSummaryRow } from "@/types/jobs";
-import { after } from "next/server";
+import { dispatchJob } from "@/lib/jobs/dispatch";
 
 export async function POST(request: Request) {
   const client = await authenticatedClient();
@@ -14,6 +14,8 @@ export async function POST(request: Request) {
   const { data, error } = await client.rpc("enqueue_job", { p_youtube_url: video.url, p_video_id: video.videoId });
   if (error) {
     switch (error.code) {
+      case "P0030": return apiError("CONCURRENT_LIMIT", "진행 중인 변환이 있습니다. 완료 후 다시 요청해 주세요.", 409);
+      case "P0031": return apiError("COST_LIMIT", "이번 달 변환 시도 또는 비용 한도에 도달했습니다.", 429);
       case "P0003": return apiError("QUOTA_EXCEEDED", "이번 달 변환 한도를 모두 사용했습니다.", 429);
       case "P0002":
       case "23505": return apiError("ALREADY_PROCESSING", "이미 변환 중인 영상입니다.", 409);
@@ -21,29 +23,15 @@ export async function POST(request: Request) {
       default: return apiError("INTERNAL", "작업을 생성하지 못했습니다.", 500);
     }
   }
-  const workerUrl = process.env.SUPABASE_WORKER_URL;
-  const workerKey = process.env.WORKER_SECRET;
-  if (workerUrl && workerKey) {
-    after(async () => {
-      try {
-        const response = await fetch(workerUrl, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${workerKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ job_id: data.id }),
-          signal: AbortSignal.timeout(8000),
-        });
-        if (!response.ok) console.error("[jobs] worker trigger rejected", response.status);
-      } catch { console.error("[jobs] worker trigger failed; job remains queued", data.id); }
-    });
-  } else {
-    console.warn("[jobs] worker not configured; job remains queued", data.id);
-  }
+  dispatchJob(data.id);
   return Response.json({ job: { id: data.id, status: data.status, video_id: data.video_id, created_at: data.created_at } }, { status: 201 });
 }
 
 export async function GET(request: Request) {
   const client = await authenticatedClient();
   if (!client) return apiError("UNAUTHENTICATED", "로그인이 필요합니다.", 401);
+  const recovered = await client.rpc("recover_my_jobs");
+  if (recovered.error) return apiError("INTERNAL", "작업 상태를 확인하지 못했습니다.", 500);
   const params = new URL(request.url).searchParams;
   const limit = Number(params.get("limit") ?? 20);
   const cursor = params.get("cursor");

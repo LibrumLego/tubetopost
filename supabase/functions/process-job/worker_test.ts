@@ -1,7 +1,7 @@
 import { extractPlayer, parseCaptions } from "./transcript.ts";
 import { renderMarkdown } from "./markdown.ts";
 import { handler } from "./handler.ts";
-import { isOutline, isSeoMeta, normalizeSeoSlug } from "./llm.ts";
+import { isOutline, isSeoMeta, normalizeSeoSlug, cleanSection, createGenerator } from "./llm.ts";
 import { parseSupadata } from "./supadata.ts";
 
 function assert(condition: unknown, message = "Assertion failed"): asserts condition { if (!condition) throw new Error(message); }
@@ -50,6 +50,8 @@ Deno.test("worker authenticates before DB access and validates request", async (
 for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "llm_error", "supadata_success", "supadata_401", "supadata_404", "supadata_429", "supadata_202", "supadata_206"] as const) {
   Deno.test(`worker mocked pipeline: ${scenario}`, async () => {
     Deno.env.set("WORKER_SECRET", "test-worker-secret");
+    Deno.env.set("OPENAI_INPUT_USD_PER_MILLION", "0.15");
+    Deno.env.set("OPENAI_OUTPUT_USD_PER_MILLION", "0.60");
     if (scenario.startsWith("supadata_")) Deno.env.set("SUPADATA_API_KEY", "test-supadata");
     else Deno.env.delete("SUPADATA_API_KEY");
     Deno.env.set("SUPABASE_URL", "https://db.example.com"); Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "test-key"); Deno.env.set("OPENAI_API_KEY", "test-openai");
@@ -57,11 +59,18 @@ for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "l
     const jobId = "11111111-1111-4111-8111-111111111111";
     const states: string[] = [];
     let finalized = false, calls = 0, source: string | null = null, failureCode: string | null = null;
-    const outline = { title: "Test title", sections: Array.from({ length: 4 }, (_, i) => ({ heading: `Section ${i}`, points: ["a", "b"], source_timestamp: 0 })) };
+    const outline = { title: "Test title", sections: Array.from({ length: 2 }, (_, i) => ({ heading: `Section ${i}`, points: ["a", "b"], source_timestamp: 0 })) };
     globalThis.fetch = async (input, init) => {
       const request = new Request(input, init);
       const url = new URL(request.url);
       if (url.hostname === "db.example.com") {
+        if (url.pathname.endsWith("/claim_job_by_id")) {
+          states.push("transcribing");
+          if (scenario === "claim_error") return Response.json({ message: "DB unavailable" }, { status: 500 });
+          if (scenario === "duplicate") return Response.json([]);
+          return Response.json([{ id: jobId, user_id: jobId, video_id: "dQw4w9WgXcQ" }]);
+        }
+        if (url.pathname.endsWith("/reserve_job_cost")) return Response.json(null);
         if (url.pathname.endsWith("/jobs")) {
           const body = await request.json(); states.push(body.status);
           if (body.transcript_source) source = body.transcript_source;
@@ -75,16 +84,19 @@ for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "l
       }
       if (url.pathname === "/oembed") return Response.json({ title: "Video title" });
       if (url.hostname === "api.supadata.ai") {
+        if (url.pathname === "/v1/metadata") return Response.json({ platform: "youtube", id: "dQw4w9WgXcQ", media: { duration: 60 } });
         assert(url.searchParams.get("mode") === "native");
         const status = scenario === "supadata_success" ? 200 : Number(scenario.split("_")[1]);
-        return Response.json(status === 200 ? { content: [{ text: "source transcript", offset: 1000, duration: 1000 }] } : {}, { status });
+        return Response.json(status === 200 ? { content: [{ text: "source transcript ".repeat(30), offset: 1000, duration: 1000 }] } : {}, { status });
       }
       if (url.pathname === "/watch") return new Response(`var ytInitialPlayerResponse = ${JSON.stringify({ captions: scenario === "no_captions" ? {} : { playerCaptionsTracklistRenderer: { captionTracks: [{ languageCode: "ko", baseUrl: "https://www.youtube.com/api/timedtext?v=test" }] } }, videoDetails: { lengthSeconds: "60" } })};`);
-      if (url.pathname === "/api/timedtext") return Response.json({ events: [{ tStartMs: 0, segs: [{ utf8: "source transcript" }] }] });
+      if (url.pathname === "/api/timedtext") return Response.json({ events: [{ tStartMs: 0, segs: [{ utf8: "source transcript ".repeat(30) }] }] });
       if (url.hostname === "api.openai.com") {
+        const requestBody = await request.json();
+        if (calls === 0 || calls === 3) assert(requestBody.response_format.type === "json_schema" && requestBody.response_format.json_schema.strict === true);
         if (scenario === "llm_error") return Response.json({ error: { message: "invalid key" } }, { status: 401 });
         calls++;
-        const content = calls === 1 ? JSON.stringify(outline) : calls === 6 ? JSON.stringify({ meta_title: "title", meta_description: "desc", keywords: ["a", "b", "c", "d", "e"], slug_suggestion: "test-post" }) : "section body";
+        const content = calls === 1 ? JSON.stringify(outline) : calls === 4 ? JSON.stringify({ meta_title: "title", meta_description: "desc", keywords: ["a", "b", "c", "d", "e"], slug_suggestion: "test-post" }) : "section body";
         return Response.json({ choices: [{ message: { content }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 10 } });
       }
       throw new Error(`Unexpected request ${request.url}`);
@@ -92,7 +104,7 @@ for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "l
     try {
       const response = await handler(new Request("https://worker", { method: "POST", headers: { Authorization: "Bearer test-worker-secret" }, body: JSON.stringify({ job_id: jobId }) }));
       if (["success", "supadata_success", "supadata_404", "supadata_202", "supadata_206"].includes(scenario)) {
-        assert(finalized && states.join(",") === "transcribing,generating,finalizing" && calls === 6, `states=${states} calls=${calls} finalized=${finalized}`);
+        assert(finalized && states.join(",") === "transcribing,generating,finalizing" && calls === 4, `states=${states} calls=${calls} finalized=${finalized}`);
         assert(source === (scenario === "supadata_success" ? "supadata" : "youtube_captions"));
       }
       else if (scenario === "duplicate") assert(!finalized && states.length === 1);
@@ -113,4 +125,22 @@ Deno.test("provider rejects malformed, excessive and long captions without inven
   assert(parseSupadata({ content: [] }) === null);
   const value = parseSupadata({ content: [{ text: "caption", offset: 1500, duration: 500 }] });
   assert(value?.segments[0].start === 1.5 && value.duration === null);
+});
+
+Deno.test("section cleanup removes duplicate headings and model-created source links", () => {
+  assert(cleanSection("# Duplicate\n\nFacts [invented](https://evil.example)\nhttps://evil.example") === "Facts invented");
+});
+
+Deno.test("short sources and rejected budgets make no model calls", async () => {
+  let calls = 0;
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => { calls++; throw new Error(); };
+  try {
+    const generator = createGenerator("test", async () => {}, async () => { throw new Error("COST_LIMIT"); });
+    let shortFailed = false;
+    try { await generator.generateOutline([{ start: 0, text: "short" }], "title"); } catch { shortFailed = true; }
+    assert(shortFailed && calls === 0);
+    try { await generator.generateSeoMeta("title", "content"); } catch { /* Expected. */ }
+    assert(calls === 0);
+  } finally { globalThis.fetch = original; }
 });

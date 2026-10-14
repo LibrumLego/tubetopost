@@ -1,0 +1,71 @@
+-- Run after 0005; synthetic records are rolled back.
+begin;
+do $$
+declare
+  u uuid:=gen_random_uuid(); outsider uuid:=gen_random_uuid(); j public.jobs; p public.posts;
+  a uuid:=gen_random_uuid(); b uuid:=gen_random_uuid(); n integer; rejected boolean;
+begin
+  insert into auth.users(id,email) values(u,'reliability-test@example.invalid');
+  perform set_config('request.jwt.claim.sub',u::text,true);
+  j:=public.enqueue_job('https://www.youtube.com/watch?v=arj7oStGLkU','arj7oStGLkU');
+  rejected:=false;
+  begin perform public.enqueue_job('https://www.youtube.com/watch?v=jNQXAC9IVRw','jNQXAC9IVRw');
+  exception when sqlstate 'P0030' then rejected:=true; end;
+  if not rejected then raise exception 'Concurrent limit failed'; end if;
+  select count(*) into n from public.claim_job_by_id(j.id,a);
+  if n<>1 then raise exception 'Claim failed'; end if;
+  select count(*) into n from public.claim_job_by_id(j.id,b);
+  if n<>0 then raise exception 'Duplicate claim accepted'; end if;
+  update public.jobs set status='generating' where id=j.id;
+  perform public.reserve_job_cost(j.id,a,0.03);
+  rejected:=false;
+  begin perform public.reserve_job_cost(j.id,a,0.03);
+  exception when sqlstate 'P0035' then rejected:=true; end;
+  if not rejected then raise exception 'Budget limit failed'; end if;
+  update public.jobs set lease_expires_at=now()-interval '1 second' where id=j.id;
+  perform public.recover_my_jobs();
+  j:=public.retry_job(j.id);
+  if j.status<>'queued' or j.retry_count<>1 then raise exception 'Retry failed'; end if;
+  perform public.claim_job_by_id(j.id,b);
+  rejected:=false;
+  begin perform public.finalize_job(j.id,'{}'::jsonb,a);
+  exception when sqlstate 'P0034' then rejected:=true; end;
+  if not rejected then raise exception 'Old worker can finalize new attempt'; end if;
+  update public.jobs set status='finalizing' where id=j.id;
+  p:=public.finalize_job(j.id,jsonb_build_object('title','Test','content_markdown','## Test','content_html','<h2>Test</h2>','slug','test-'||u::text),b);
+  if (select used_this_month from public.profiles where id=u)<>1 then raise exception 'Quota failed'; end if;
+  rejected:=false;
+  begin perform public.finalize_job(j.id,'{}'::jsonb,b);
+  exception when sqlstate 'P0012' then rejected:=true; end;
+  if not rejected then raise exception 'Duplicate finalization accepted'; end if;
+  p:=public.update_post(p.id,jsonb_build_object('title','Edited','expected_revision',0));
+  if p.revision<>1 then raise exception 'Revision failed'; end if;
+  rejected:=false;
+  begin perform public.update_post(p.id,jsonb_build_object('title','Lost update','expected_revision',0));
+  exception when sqlstate 'P0036' then rejected:=true; end;
+  if not rejected then raise exception 'Stale editor can overwrite'; end if;
+  j:=public.enqueue_job('https://www.youtube.com/watch?v=jNQXAC9IVRw','jNQXAC9IVRw');
+  update public.jobs set created_at=now()-interval '2 minutes' where id=j.id;
+  perform public.recover_my_jobs();
+  if (select status from public.jobs where id=j.id)<>'failed' then raise exception 'Queued recovery failed'; end if;
+  update public.jobs set retry_count=3 where id=j.id;
+  rejected:=false;
+  begin perform public.retry_job(j.id);
+  exception when sqlstate 'P0033' then rejected:=true; end;
+  if not rejected then raise exception 'Retry bound failed'; end if;
+  insert into public.job_attempts(id,job_id,user_id) select gen_random_uuid(),j.id,u from generate_series(1,30);
+  rejected:=false;
+  begin perform public.enqueue_job('https://www.youtube.com/watch?v=jNQXAC9IVRw','jNQXAC9IVRw');
+  exception when sqlstate 'P0031' then rejected:=true; end;
+  if not rejected then raise exception 'Monthly attempts failed'; end if;
+  perform set_config('request.jwt.claim.sub',outsider::text,true);
+  rejected:=false;
+  begin perform public.retry_job(j.id);
+  exception when sqlstate 'P0032' then rejected:=true; end;
+  if not rejected then raise exception 'Another user can retry'; end if;
+  if has_function_privilege('authenticated','public.finalize_job_legacy(uuid,jsonb)','EXECUTE')
+    or has_function_privilege('authenticated','public.update_post_legacy(uuid,jsonb)','EXECUTE')
+    or has_function_privilege('service_role','public.finalize_job_legacy(uuid,jsonb)','EXECUTE') then raise exception 'Legacy permission bypass'; end if;
+end $$;
+select 'reliability assertions passed; transaction rolled back' as result;
+rollback;

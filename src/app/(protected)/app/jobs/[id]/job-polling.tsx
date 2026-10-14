@@ -8,6 +8,7 @@ import type { JobStatus } from "@/types/jobs";
 import { JOB_STATUS_LABELS, isInProgress, youtubeThumbnail } from "@/lib/jobs/display";
 
 interface JobDetail {
+  retry_count?: number;
   id: string;
   status: JobStatus;
   video_id: string;
@@ -29,6 +30,10 @@ const STATUS_MESSAGES: Record<JobStatus, string> = {
 };
 
 const FAILURE_MESSAGES: Record<string, string> = {
+  JOB_TIMEOUT: "작업 응답이 없어 중단했습니다. 다시 시도할 수 있습니다.",
+  COST_LIMIT: "이 작업의 생성 비용 한도에 도달했습니다.",
+  SOURCE_TOO_SHORT: "자막 내용이 너무 짧아 근거 있는 글을 만들기 어렵습니다. 다른 영상을 시도해 주세요.",
+  DURATION_UNAVAILABLE: "영상 길이를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
   TRANSCRIPT_PROVIDER_LIMITED: "자막 공급자의 요청 속도 또는 사용량 제한에 도달했어요. 잠시 후 다시 시도해 주세요.",
   VIDEO_TOO_LONG: "자막이 20분 구간 또는 처리 가능한 분량을 초과했어요. 더 짧은 영상을 시도해 주세요.",
   NO_TRANSCRIPT: "자막을 가져오지 못했어요. 자막이 있어도 YouTube에서 자동 추출을 제한할 수 있습니다. 다른 영상을 시도해 주세요.",
@@ -39,6 +44,20 @@ const FAILURE_MESSAGES: Record<string, string> = {
 export function JobPolling({ initialJob }: { initialJob: JobDetail }) {
   const [job, setJob] = useState(initialJob);
   const router = useRouter();
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
+  async function retry() {
+    setRetrying(true); setRetryError(null);
+    try {
+      const response = await fetch(`/api/jobs/${job.id}/retry`, { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) { setRetryError(result.error?.message ?? "재시도하지 못했습니다."); return; }
+      const refreshed = await fetch(`/api/jobs/${job.id}`, { cache: "no-store" });
+      if (!refreshed.ok) throw new Error();
+      setJob((await refreshed.json()).job);
+    } catch { setRetryError("재시도 결과를 확인하지 못했습니다. 화면을 새로고침해 주세요."); }
+    finally { setRetrying(false); }
+  }
 
   useEffect(() => {
     if (!isInProgress(job.status)) {
@@ -107,6 +126,8 @@ export function JobPolling({ initialJob }: { initialJob: JobDetail }) {
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
           <p className="text-sm text-destructive">{failureMessage}</p>
           <div className="mt-3">
+            <Button size="sm" onClick={retry} disabled={retrying || (job.retry_count ?? 0) >= 3}>{retrying ? "재시도 요청 중…" : "다시 시도"}</Button>
+            {retryError && <p role="alert" className="mt-2 text-sm text-destructive">{retryError}</p>}
             <Link href="/app">
               <Button variant="outline" size="sm">작업 목록으로</Button>
             </Link>
