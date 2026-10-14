@@ -1,5 +1,17 @@
 # 전사 공급 PoC 로그
 
+## 2026-10-14: 실제 PoC-A 통과
+
+실행자: Codex. Supadata 로그인과 온보딩 후 발급된 키를 `.env.local`에 설정하고 `pnpm poc:supadata` 실행. 키와 자막 내용은 로그에 출력하지 않았다.
+
+| 영상 ID | HTTP 상태 | segments_count | usable |
+| --- | ---: | ---: | --- |
+| arj7oStGLkU | 200 | 315 | true |
+| dQw4w9WgXcQ | 200 | 61 | true |
+| jNQXAC9IVRw | 200 | 4 | true |
+
+결론: native 공급 PoC 통과(3/3), 종료 코드 0. 총 3회 요청, 예상 3크레딧. 이 결과는 자막 공급 검증이며 전체 글 생성·편집·공개 조회 E2E 통과는 아니다. 아래 키 누락 기록은 이전 실행이다.
+
 ## 2026-10-14: PoC-A Supadata
 
 실행자: Codex. 명령: `pnpm poc:supadata`.
