@@ -29,6 +29,8 @@ const STATUS_MESSAGES: Record<JobStatus, string> = {
 };
 
 const FAILURE_MESSAGES: Record<string, string> = {
+  TRANSCRIPT_PROVIDER_LIMITED: "자막 공급자의 요청 속도 또는 사용량 제한에 도달했어요. 잠시 후 다시 시도해 주세요.",
+  VIDEO_TOO_LONG: "자막이 20분 구간 또는 처리 가능한 분량을 초과했어요. 더 짧은 영상을 시도해 주세요.",
   NO_TRANSCRIPT: "자막을 가져오지 못했어요. 자막이 있어도 YouTube에서 자동 추출을 제한할 수 있습니다. 다른 영상을 시도해 주세요.",
   GENERATION_FAILED: "AI 생성에 일시적인 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
   INTERNAL: "일시적인 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",

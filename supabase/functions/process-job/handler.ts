@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { fetchYoutubeMeta } from "./youtube-meta.ts";
 import { fetchTranscript, TranscriptError } from "./transcript.ts";
+import { fetchFromSupadata } from "./supadata.ts";
 import { createGenerator, LlmError } from "./llm.ts";
 import { renderMarkdown } from "./markdown.ts";
 
@@ -40,7 +41,7 @@ export async function handler(request: Request): Promise<Response> {
     }
     try {
       const meta = await fetchYoutubeMeta(job!.video_id);
-      const transcript = await fetchTranscript(job!.video_id);
+      const transcript = await fetchFromSupadata(job!.video_id) ?? await fetchTranscript(job!.video_id);
       await transition("generating", { video_title: meta.title, video_thumbnail_url: meta.thumbnail, video_duration_sec: transcript.duration, transcript: transcript.transcript, transcript_source: transcript.source });
       const generator = createGenerator(apiKey!, async (model, input, output) => {
         // Price estimates are configured rather than embedded as stale rates.
@@ -62,8 +63,15 @@ export async function handler(request: Request): Promise<Response> {
       } });
       if (finalized.error) throw new Error("FINALIZE_FAILED");
     } catch (error) {
-      const code = error instanceof TranscriptError ? "NO_TRANSCRIPT" : error instanceof LlmError ? "GENERATION_FAILED" : "INTERNAL";
-      const message = code === "NO_TRANSCRIPT" ? "자막을 가져올 수 없습니다. 자막이 있는 다른 영상을 시도해 주세요." : "변환에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+      const code = error instanceof TranscriptError
+        ? error.message === "SUPADATA_LIMITED" ? "TRANSCRIPT_PROVIDER_LIMITED"
+          : error.message.startsWith("SUPADATA_") ? "INTERNAL"
+          : error.message === "VIDEO_TOO_LONG" || error.message === "TRANSCRIPT_TOO_LONG" ? "VIDEO_TOO_LONG" : "NO_TRANSCRIPT"
+        : error instanceof LlmError ? "GENERATION_FAILED" : "INTERNAL";
+      const message = code === "TRANSCRIPT_PROVIDER_LIMITED" ? "자막 공급자의 속도 또는 사용량 제한에 도달했습니다."
+        : code === "VIDEO_TOO_LONG" ? "자막이 20분 구간 또는 처리 가능한 분량을 초과했습니다."
+        : code === "NO_TRANSCRIPT" ? "자막을 가져오지 못했습니다. 자동 추출이 제한될 수 있습니다."
+        : "변환에 실패했습니다. 잠시 후 다시 시도해 주세요.";
       const failed = await supabase.from("jobs").update({ status: "failed", error_code: code, error_message: message, completed_at: new Date().toISOString() })
         .eq("id", jobId).eq("status", state);
       // Conditional failure cannot overwrite an already committed done result.

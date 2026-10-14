@@ -2,6 +2,16 @@
 
 ## 구성과 배포
 
+### Supadata native 통합
+
+`SUPADATA_API_KEY`를 Edge Function Secrets에 설정하면 Supadata native 자막을 우선 요청한다. 로컬 키는 PoC용이며 운영 키 설정을 대체하지 않는다. 공식 계약: [transcript](https://docs.supadata.ai/get-transcript), [오류 코드](https://docs.supadata.ai/errors/list).
+
+AI 생성과 자동 재시도는 하지 않으며 작업당 공급자 요청은 1회다. 미설정·202·206·404·422·빈 자막은 기존 YouTube 경로로 넘어간다. 잘못된 키·응답·공급자 장애는 INTERNAL, 429는 속도 또는 사용량 제한을 뜻하는 TRANSCRIPT_PROVIDER_LIMITED로 분류한다. 429를 크레딧 소진으로 단정하지 않는다.
+
+Supadata 세그먼트는 ms에서 초로 변환하고 timestamp와 텍스트를 검증한다. 20분 이후 자막 구간이나 50,000자 초과 입력은 거부한다. 자막 끝 시각은 영상 길이의 하한일 뿐 전체 영상 길이가 아니므로 DB duration은 null이다. 따라서 무음 후반부까지 포함한 정확한 20분 영상 길이 제한은 보장하지 않는다. native 요청은 AI 분당 비용이 없으며 사용 크레딧은 공급자 대시보드에서 확인한다. 기존 usage_logs는 OpenAI 생성 비용만 기록한다.
+
+배포 전에 `0004_transcript_source.sql`을 적용한다. 마이그레이션은 실제 카탈로그에서 transcript_source 단일 컬럼 CHECK를 찾아 교체하고, 예상과 다른 제약이 있으면 중단한다. 기존 값·NULL·RLS·완료 RPC는 유지한다. Next.js와 워커 타입에 `supadata`를 추가하며 진행률은 일반 자막과 동일하다.
+
 `0002_finalize_job.sql`은 service_role 전용 완료 RPC다. 글 저장, done 전이, 월 사용량 증가를 한 트랜잭션으로 처리한다. 중복 완료는 P0012로 거부하고, slug 충돌과 월 쿼터 리셋도 처리한다.
 
 Next.js는 응답 후 `after`로 워커를 호출한다. 워커는 요청한 job만 조건부 업데이트로 claim한 후 202를 반환하고 `EdgeRuntime.waitUntil`로 작업한다. Authorization 헤더는 전용 공유 시크릿 `WORKER_SECRET`과 일치해야 한다. 일반 사용자 JWT와 DB 서비스 키는 워커 호출 인증으로 허용하지 않는다.
