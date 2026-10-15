@@ -29,6 +29,8 @@ export async function fetchFromSupadata(videoId: string) {
   url.searchParams.set("url", `https://www.youtube.com/watch?v=${videoId}`);
   url.searchParams.set("mode", "native");
   url.searchParams.set("text", "false");
+  // The provider otherwise chooses its first track, which can be a translation.
+  url.searchParams.set("lang", Deno.env.get("SUPADATA_TRANSCRIPT_LANG") ?? "en");
   let response: Response;
   try {
     response = await fetch(url, { headers: { "x-api-key": key }, redirect: "error", signal: AbortSignal.timeout(20000) });

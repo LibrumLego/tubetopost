@@ -2,6 +2,8 @@
 
 Supadata native 자막을 우선 사용하고 제공자가 자막을 제공하지 못하면 YouTube 직접 추출로 fallback한다. Whisper와 AI 전사는 구현하지 않았다. Supadata metadata로 실제 영상 길이를 먼저 확인하며, 확인 실패 또는 20분 초과는 거절한다. 자막 제한은 50,000자다.
 
+Supadata 요청의 선호 언어는 기본 `en`이며 Edge secret `SUPADATA_TRANSCRIPT_LANG`으로 바꿀 수 있다. 공급자는 선호 언어가 없으면 첫 가용 언어를 반환할 수 있으므로 원문 검수 시 언어도 확인해야 한다. 이 설정은 번역 API나 유료 AI 전사를 활성화하지 않는다.
+
 ## 배포
 
 1. `supabase/migrations`를 번호 순서대로 적용한다. 적용된 파일은 다시 실행하지 않는다. 현재 원격 DB에는 0007까지 적용되어 있다.

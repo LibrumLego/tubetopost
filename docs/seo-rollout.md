@@ -19,8 +19,12 @@
 |---|---|---|---|
 | 우리는 왜 미룰까: 팀 어반의 TED 강연에서 읽는 두 가지 미루기 | exploring-procrastin | arj7oStGLkU | 전체 원문 대조·수정 기록 있음 |
 | 미루는 습관의 심리: 팀 어반 TED 강연 | procrastination-and | arj7oStGLkU | 이전 E2E 공개 글. 이번 전체 원문 대조 대상은 아님 |
+| 30일 도전: 맷 커츠가 말하는 작고 지속 가능한 변화 | 30-day-challenge | JnfBXjWm7hc | 원문 대조·Claude 검토 후 공개 |
+| TypeScript 입문: 정적 타입 검사와 IDE 피드백 | typescript-advantage | zQnBQ4tB3ZA | 원문 대조·Claude 검토 후 공개 |
+| 듣고 싶은 말하기: 줄리언 트레저의 HAIL과 목소리 도구 | how-to-speak-effect | eIho2S0ZahI | 원문 대조·Claude 검토 후 수정·공개 |
+| 마시멜로 챌린지: 작은 시제품으로 가정을 확인하는 팀 | teamwork-marshmallow | H0_yKBitO8M | 영어 원문 대조·Claude 검토 후 보강·공개 |
 
-실제 DB에는 공개 글 2개가 있으며 같은 영상이다. 다양한 주제의 검수 글 5개 이상이라는 목표를 달성했다고 간주하지 않는다. 기존 공개 설정은 유지했다. 새 글은 사용자 영상 선정과 검수·공개 결정에 따라 추가한다. 도메인과 서비스 이름 검토는 [이름 검토](naming-review.md)를 참고한다.
+최초 검토 시 공개 글 2개는 같은 영상이었다. 후속 작업 계속 지시에 따라 검수 글 4개를 추가 공개해 현재 공개 글 6개, 원본 영상 5종을 갖췄다. 이 중 전체 원문 대조 검수 기록이 있는 글은 5개다. 기존 공개 설정은 유지했고 다른 사용자 글은 바꾸지 않았다. 도메인과 서비스 이름 검토는 [이름 검토](naming-review.md)를 참고한다.
 
 ## 지시서에서 보정한 사항
 
@@ -30,7 +34,7 @@ service role key만으로 `enqueue_job`을 호출하면 auth.uid()가 없어 사
 
 ## 남은 결정
 
-추가 영상 목록·공개할 글, 서비스 표시명과 구매 도메인은 아직 확정되지 않았다. 승인되지 않은 초안이나 다른 사용자의 글을 공개하지 않는다. Search Console 등록만으로 검색 색인·유입을 보장하지 않는다.
+후속 작업 요청에 따라 GPT가 공식 TED 3개를 선정해 비공개 초안을 생성했고, 기존 TypeScript 초안과 함께 [검수 원고 4개](drafts/README.md)를 원문·Claude 교차 검수 후 공개했다. 서비스 표시명과 구매 도메인은 아직 확정되지 않았다. Search Console 등록만으로 검색 색인·유입을 보장하지 않는다.
 
 후속 Claude 검토를 반영해 probe의 고정 slug 의존과 사이트 주소 fallback을 제거했다. 자세한 토론·보완 내역은 [검토 기록](claude-review-2026-10-15.md)을 참고한다.
 

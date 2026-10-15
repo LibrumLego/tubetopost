@@ -86,6 +86,7 @@ for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "l
       if (url.hostname === "api.supadata.ai") {
         if (url.pathname === "/v1/metadata") return Response.json({ platform: "youtube", id: "dQw4w9WgXcQ", media: { duration: 60 } });
         assert(url.searchParams.get("mode") === "native");
+        assert(url.searchParams.get("lang") === (Deno.env.get("SUPADATA_TRANSCRIPT_LANG") ?? "en"));
         const status = scenario === "supadata_success" ? 200 : Number(scenario.split("_")[1]);
         return Response.json(status === 200 ? { content: [{ text: "source transcript ".repeat(30), offset: 1000, duration: 1000 }] } : {}, { status });
       }

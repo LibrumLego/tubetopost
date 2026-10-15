@@ -22,7 +22,7 @@ export function createGenerator(apiKey: string, recordUsage: (model: string, inp
   const model = Deno.env.get("OPENAI_MODEL") ?? "gpt-4o-mini";
   async function call(system: string, user: string, schema?: Record<string, unknown>) {
     try {
-      const prompt = `${RULES}\n${system}`;
+      const prompt = `${RULES}\n숫자의 단위를 보존한다. words는 단어 수이며 글자 수로 바꾸지 않는다. 시간·분량·비율을 임의로 환산하지 않는다. 개인 경험이나 제안을 보편적으로 입증된 효과로 확대하지 않는다.\n${system}`;
       const inputBytes = new TextEncoder().encode(prompt + user + JSON.stringify(schema ?? {})).length + 512;
       await beforeCall?.(inputBytes, 1800);
       const response = await client.chat.completions.create({
