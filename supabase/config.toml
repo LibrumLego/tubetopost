@@ -1,2 +1,6 @@
 [functions.process-job]
 verify_jwt = false
+
+[auth]
+site_url = "https://tubetopost.vercel.app"
+additional_redirect_urls = ["http://localhost:3000/auth/callback", "https://tubetopost.vercel.app/auth/callback"]
