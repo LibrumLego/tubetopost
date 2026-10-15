@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Button } from "@/components/ui/button";
 import { ViewTracker } from "./view-tracker";
 import { getSiteOrigin } from "@/lib/site-url";
@@ -25,7 +25,7 @@ interface Post {
 
 async function fetchPost(slug: string): Promise<Post | null> {
   if (!SLUG_RE.test(slug) || slug.length > 120) return null;
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
   const { data } = await supabase
     .from("posts")
     .select("slug,title,description,keywords,content_html,cover_image_url,view_count,created_at,updated_at,is_public")

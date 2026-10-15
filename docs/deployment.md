@@ -37,6 +37,8 @@ vercel deploy --prod
 node scripts/check-demo.mjs
 ```
 
+probe는 랜딩의 현재 공개 글 링크를 자동으로 선택한다. 특정 글을 점검하려면 `DEMO_SLUG` 환경변수를 지정한다. 공개 글이 0개면 콘텐츠 검증만 skip한다고 표시한다. 공개 글이 sitemap에 있는데 랜딩에 링크가 없으면 실패한다. 관련 회귀 검증은 `node --test scripts/check-demo.test.mjs scripts/site-url.test.mjs`로 실행한다. 앱의 `NEXT_PUBLIC_APP_URL`은 필수이며 경로·인증정보·query가 없는 http(s) origin이어야 한다.
+
 `vercel.json`에서 frozen lockfile 설치와 `pnpm lint && pnpm build`를 고정했다. 검사 또는 빌드가 실패하면 새 배포가 production으로 승격되지 않는다. Vercel의 production 도메인은 공개이고 별도의 deployment URL은 Vercel 인증을 요구할 수 있다. 공유에는 위 운영 주소를 사용한다.
 
 이 자동 배포는 Next.js 웹 앱을 대상으로 한다. Supabase DB 마이그레이션과 Edge Function은 기존 별도 배포 절차를 따른다. 현재 운영 환경변수를 production에 설정했으며 PR preview 환경은 별도로 준비해야 한다.

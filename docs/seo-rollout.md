@@ -7,7 +7,7 @@
 - 랜딩 Before/After 아래에 최근 공개 글 최대 6개를 표시한다. 제목·설명·썸네일·글 링크가 있으며 공개 글이 없으면 섹션을 숨긴다.
 - ‘최근’에 맞춰 created_at 내림차순으로 정렬한다. 지시서 예시의 `descending` 대신 SDK의 `ascending: false`를 사용했다.
 - 조회에는 쿠키나 service role을 사용하지 않는 익명 클라이언트를 쓰고 is_public 필터와 RLS를 모두 적용한다.
-- sitemap은 랜딩과 모든 공개 글만 포함하고 글의 updated_at을 lastModified로 사용한다. PostgREST 1,000행 제한을 넘는 경우도 페이지 단위로 읽는다. 조회 실패를 정상적인 빈 사이트맵으로 숨기지 않는다.
+- sitemap은 랜딩과 모든 공개 글만 포함하고 글의 updated_at을 lastModified로 사용한다. PostgREST 1,000행 제한을 넘는 경우도 ID cursor로 읽는다. 동시 변경에 대한 DB snapshot은 아니며 조회 실패를 정상적인 빈 사이트맵으로 숨기지 않는다.
 - robots는 /app·/api·/auth·/login 크롤링을 제외한다. 접근 권한은 별도로 Auth/RLS가 담당한다.
 - OG 이미지·Twitter Card·canonical·Article JSON-LD를 확인했다. JSON-LD에 수정일을 추가하고 `<`를 escape해 사용자 제목이 script 태그를 종료하지 못하도록 했다.
 - `scripts/review-post.mjs <post-id>`는 제목·목차·중복 목차·영상 링크·주의 표현·원문에 숫자로 일치하지 않는 수치를 출력한다. 읽기 전용이며 경고 유무는 사실 정확성 판정이 아니다.
@@ -31,6 +31,8 @@ service role key만으로 `enqueue_job`을 호출하면 auth.uid()가 없어 사
 ## 남은 결정
 
 추가 영상 목록·공개할 글, 서비스 표시명과 구매 도메인은 아직 확정되지 않았다. 승인되지 않은 초안이나 다른 사용자의 글을 공개하지 않는다. Search Console 등록만으로 검색 색인·유입을 보장하지 않는다.
+
+후속 Claude 검토를 반영해 probe의 고정 slug 의존과 사이트 주소 fallback을 제거했다. 자세한 토론·보완 내역은 [검토 기록](claude-review-2026-10-15.md)을 참고한다.
 
 ## 검증 기록
 

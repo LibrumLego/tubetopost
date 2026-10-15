@@ -8,18 +8,27 @@ async function get(path, expected, redirect = "follow") {
   return response;
 }
 const landing = await get("/", 200);
-assert.ok((await landing.text()).includes("/post/exploring-procrastin"), "Public showcase is missing");
+const landingHtml = await landing.text();
+const configuredSlug = process.env.DEMO_SLUG;
+if (configuredSlug !== undefined) assert.match(configuredSlug, /^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Invalid DEMO_SLUG");
+const discoveredSlug = landingHtml.match(/href="\/post\/([a-z0-9]+(?:-[a-z0-9]+)*)"/)?.[1];
+const slug = configuredSlug ?? discoveredSlug;
 await get("/login", 200);
-const post = await get("/post/exploring-procrastin", 200);
-assert.equal(new URL(post.url).origin, origin, "Public post redirected to another service");
-const html = await post.text();
-assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1, "Expected one page title");
-assert.ok(html.includes("원문 자막과 대조"), "Reviewed demo disclosure is missing");
-assert.ok(html.includes("arj7oStGLkU"), "Original video source is missing");
-assert.ok(html.includes(`rel="canonical" href="${origin}/post/exploring-procrastin"`), "Incorrect canonical URL");
+if (slug) {
+  const path = `/post/${slug}`;
+  const post = await get(path, 200);
+  assert.equal(new URL(post.url).origin, origin, "Public post redirected to another service");
+  const html = await post.text();
+  assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1, "Expected one page title");
+  assert.match(html, /https:\/\/(?:www\.)?youtube\.com\/watch\?v=/, "Original video source is missing");
+  assert.ok(html.includes(`rel="canonical" href="${origin}${path}"`), "Incorrect canonical URL");
+} else {
+  console.log("SKIP public article check: no article link on landing. This does not verify content readiness.");
+}
 const sitemap = await get("/sitemap.xml", 200);
 const xml = await sitemap.text();
-assert.ok(xml.includes(`${origin}/post/exploring-procrastin`), "Public post missing from sitemap");
+if (/<loc>[^<]+\/post\//.test(xml)) assert.ok(discoveredSlug, "Public sitemap has articles but landing showcase is missing");
+if (slug) assert.ok(xml.includes(`${origin}/post/${slug}</loc>`), "Public post missing from sitemap");
 assert.ok(!/<loc>[^<]*\/(?:app|api|auth|login)(?:[\/<])/.test(xml), "Private routes in sitemap");
 const robots = await get("/robots.txt", 200);
 const rules = await robots.text();
@@ -36,4 +45,4 @@ if (protectedPage.status === 307) {
   assert.match(shell, /<meta[^>]+http-equiv="refresh"[^>]+content="[^";]*;url=\/login"/);
 }
 console.log("/app: unauthenticated visitor redirected to login");
-console.log("Public demo, source attribution, metadata and authentication checks passed.");
+console.log("Available public content, discovery, metadata and authentication checks passed.");
