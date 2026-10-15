@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { ViewTracker } from "./view-tracker";
+import { getSiteOrigin } from "@/lib/site-url";
 
 export const instant = false;
 
@@ -18,6 +19,7 @@ interface Post {
   cover_image_url: string | null;
   view_count: number;
   created_at: string;
+  updated_at: string;
   is_public: boolean;
 }
 
@@ -26,7 +28,7 @@ async function fetchPost(slug: string): Promise<Post | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("posts")
-    .select("slug,title,description,keywords,content_html,cover_image_url,view_count,created_at,is_public")
+    .select("slug,title,description,keywords,content_html,cover_image_url,view_count,created_at,updated_at,is_public")
     .eq("slug", slug)
     .maybeSingle();
   if (!data || !data.is_public) return null;
@@ -37,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = await fetchPost(slug);
   if (!post) return { title: "글을 찾을 수 없습니다" };
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const appUrl = getSiteOrigin();
   const url = appUrl ? `${appUrl}/post/${post.slug}` : undefined;
   return {
     title: post.title,
@@ -66,7 +68,7 @@ export default async function PublicPostPage({ params }: { params: Promise<{ slu
   if (!post) notFound();
 
   const created = new Date(post.created_at).toLocaleDateString("ko-KR");
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const appUrl = getSiteOrigin();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -75,13 +77,14 @@ export default async function PublicPostPage({ params }: { params: Promise<{ slu
     description: post.description,
     image: post.cover_image_url ?? undefined,
     datePublished: post.created_at,
+    dateModified: post.updated_at,
     url: appUrl ? `${appUrl}/post/${post.slug}` : undefined,
   };
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10">
       <ViewTracker slug={post.slug} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
 
       {post.cover_image_url && (
         /* eslint-disable-next-line @next/next/no-img-element */
@@ -93,7 +96,7 @@ export default async function PublicPostPage({ params }: { params: Promise<{ slu
       )}
 
       <header className="mb-8 space-y-3">
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{post.title}</h1>
+        <h1 className="break-keep text-3xl font-bold leading-tight sm:text-4xl">{post.title}</h1>
         {post.description && <p className="text-lg text-muted-foreground">{post.description}</p>}
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <time dateTime={post.created_at}>{created}</time>

@@ -2,6 +2,40 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { createPublicClient } from "@/lib/supabase/public";
+
+async function RecentPublicPosts() {
+  const db = await createPublicClient();
+  const { data, error } = await db.from("posts")
+    .select("slug,title,description,cover_image_url")
+    .eq("is_public", true).order("created_at", { ascending: false }).limit(6);
+  if (error) {
+    console.error("[landing] public posts unavailable");
+    return null;
+  }
+  if (!data.length) return null;
+  return (
+    <section aria-labelledby="public-posts-heading" className="mx-auto max-w-5xl px-4 py-12">
+      <h2 id="public-posts-heading" className="text-center text-2xl font-bold sm:text-3xl">최근 공개 글</h2>
+      <p className="mt-3 text-center text-sm text-muted-foreground">영상에서 시작해 편집하고 공개한 글을 읽어보세요.</p>
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {data.map((post) => (
+          <Link key={post.slug} href={`/post/${post.slug}`} className="overflow-hidden rounded-lg border transition-colors hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-offset-4">
+            {post.cover_image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={post.cover_image_url} alt="" loading="lazy" className="aspect-video w-full object-cover" />
+            )}
+            <div className="space-y-3 p-5">
+              <h3 className="break-keep font-semibold leading-relaxed">{post.title}</h3>
+              <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{post.description}</p>
+              <span className="inline-block text-sm font-medium underline underline-offset-4">글 읽기</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 async function HeroCta() {
   const user = await getUser();
@@ -53,6 +87,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <Suspense fallback={null}>
+        <RecentPublicPosts />
+      </Suspense>
 
       {/* How it works */}
       <section id="how" className="mx-auto max-w-5xl px-4 py-20">

@@ -5,6 +5,7 @@ import { Header } from "@/components/shared/header";
 export const metadata: Metadata = {
   title: "TubeToPost",
   description: "유튜브 영상을 블로그 글로 변환하는 서비스",
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
