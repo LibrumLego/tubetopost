@@ -39,3 +39,5 @@ lint·프로덕션 빌드 통과 후 GitHub push로 운영 자동 배포를 완�
 Supadata `/v1/me` 조회 결과 Free (100/mo), 사용 20 / 한도 100, 잔여 80 credits였다. 이 확인 과정에서 새 영상을 변환하지 않았다. 잔여량은 이후 사용에 따라 바뀐다.
 
 Google Search Console에서 현재 운영 주소의 URL 접두어 속성을 추가하고 HTML meta 방식으로 ‘소유권이 확인됨’을 확인했다. production 환경변수의 검증 토큰을 유지해야 한다.
+
+`https://tubetopost.vercel.app/sitemap.xml`을 제출하고 Search Console의 ‘사이트맵이 제출됨’ 응답을 확인했다. Google의 이후 처리와 색인 생성은 별도로 진행된다.
