@@ -24,14 +24,22 @@ Supabase Auth Site URL은 운영 주소로 바꾸고 운영 `/auth/callback`을 
 
 ## 다시 배포하기
 
-Vercel CLI 로그인 후 프로젝트에 연결하고 production 변수를 설정한다. secret은 명령행 인자 대신 stdin으로 전달한다. 이후 아래 명령을 실행한다.
+GitHub 비공개 저장소 `LibrumLego/tubetopost`를 기존 Vercel 프로젝트에 연결했다. `main`에 push하면 Vercel Git Integration이 production 배포를 시작한다. 별도의 GitHub Actions용 Vercel 토큰을 복제하지 않는다.
+
+```sh
+git push origin main
+```
+
+Vercel production 환경변수는 기존 설정을 사용한다. 설정을 바꿀 때 secret은 명령행 인자 대신 stdin으로 전달한다. CLI 수동 배포도 가능하다.
 
 ```sh
 vercel deploy --prod
 node scripts/check-demo.mjs
 ```
 
-`vercel.json`에서 frozen lockfile 설치와 빌드 명령을 고정했다. 로컬 git 저장소에는 remote가 등록되어 있지 않아 Git 자동 배포는 연결하지 않았다. 현재는 CLI로 배포한다. Vercel의 production 도메인은 공개이고, 별도의 deployment URL은 Vercel 인증을 요구할 수 있다. 공유에는 위 운영 주소를 사용한다.
+`vercel.json`에서 frozen lockfile 설치와 `pnpm lint && pnpm build`를 고정했다. 검사 또는 빌드가 실패하면 새 배포가 production으로 승격되지 않는다. Vercel의 production 도메인은 공개이고 별도의 deployment URL은 Vercel 인증을 요구할 수 있다. 공유에는 위 운영 주소를 사용한다.
+
+이 자동 배포는 Next.js 웹 앱을 대상으로 한다. Supabase DB 마이그레이션과 Edge Function은 기존 별도 배포 절차를 따른다. 현재 운영 환경변수를 production에 설정했으며 PR preview 환경은 별도로 준비해야 한다.
 
 ## 공개 글 검수
 

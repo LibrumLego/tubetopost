@@ -4,7 +4,7 @@
 
 URL 입력부터 비동기 생성, 글 편집, 공개 페이지까지 구현했습니다. 생성 성공뿐 아니라 외부 자막 공급자 오류, 중단된 작업, 중복 실행, 편집 충돌과 비용 제한을 다룹니다.
 
-**[라이브 데모](https://tubetopost.vercel.app)** · **[검수한 공개 글](https://tubetopost.vercel.app/post/exploring-procrastin)** · [검증 기록](docs/reliability.md)
+**[라이브 데모](https://tubetopost.vercel.app)** · **[검수한 공개 글](https://tubetopost.vercel.app/post/exploring-procrastin)** · [비공개 GitHub 저장소](https://github.com/LibrumLego/tubetopost) · [검증 기록](docs/reliability.md)
 
 공개 글은 로그인 없이 볼 수 있습니다. 변환·편집에는 이메일 매직링크 로그인이 필요합니다. 데모 글은 AI 초안을 원문 자막과 대조해 편집했으며, 자동 생성 품질을 그대로 보여 주는 결과물과 구분해 표시했습니다.
 
