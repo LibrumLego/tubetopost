@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/shared/header";
+import { Suspense } from "react";
+import { BetaTracker } from "@/components/shared/beta-tracker";
 
 export const metadata: Metadata = {
   title: "TubeToPost",
@@ -16,6 +18,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <Header />
+        <Suspense fallback={null}><BetaTracker /></Suspense>
         {children}
       </body>
     </html>

@@ -14,6 +14,8 @@ export async function POST(request: Request) {
   const { data, error } = await client.rpc("enqueue_job", { p_youtube_url: video.url, p_video_id: video.videoId });
   if (error) {
     switch (error.code) {
+      case "P0040": return apiError("SERVICE_LIMIT", "무료 베타의 전체 처리 한도에 도달했습니다. 나중에 다시 시도해 주세요.", 429);
+      case "P0041": return apiError("SERVICE_BUSY", "다른 변환을 처리 중입니다. 잠시 후 다시 시도해 주세요.", 409);
       case "P0030": return apiError("CONCURRENT_LIMIT", "진행 중인 변환이 있습니다. 완료 후 다시 요청해 주세요.", 409);
       case "P0031": return apiError("COST_LIMIT", "이번 달 변환 시도 또는 비용 한도에 도달했습니다.", 429);
       case "P0003": return apiError("QUOTA_EXCEEDED", "이번 달 변환 한도를 모두 사용했습니다.", 429);

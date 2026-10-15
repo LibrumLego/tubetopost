@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "env:check": "node scripts/check-env.mjs",
     "worker:check": "node scripts/check-worker.mjs",
+    "beta:report": "supabase db query --linked --file scripts/beta-report.sql",
     "poc:supadata": "node scripts/poc-supadata.mjs",
     "diag:transcript": "deno run --config supabase/functions/process-job/deno.json --allow-net supabase/functions/process-job/transcript-diagnostic.ts",
     "sb": "supabase",

@@ -30,7 +30,15 @@ export async function handler(request: Request): Promise<Response> {
   const attemptId = crypto.randomUUID();
   const { data: claimed, error } = await supabase.rpc("claim_job_by_id", { p_job_id: jobId, p_attempt: attemptId });
   const job = claimed?.[0];
-  if (error) return json({ error: "CLAIM_FAILED" }, 500);
+  if (error) {
+    if (["P0040", "P0041"].includes(error.code)) {
+      const busy = error.code === "P0041";
+      await supabase.from("jobs").update({ status: "failed", error_code: busy ? "SERVICE_BUSY" : "SERVICE_LIMIT", error_stage: "capacity",
+        error_message: busy ? "다른 변환을 처리 중입니다. 잠시 후 다시 시도해 주세요." : "무료 베타의 전체 처리 한도에 도달했습니다. 나중에 다시 시도해 주세요.", completed_at: new Date().toISOString() }).eq("id", jobId).eq("status", "queued");
+      return json({ error: busy ? "SERVICE_BUSY" : "SERVICE_LIMIT" }, 503);
+    }
+    return json({ error: "CLAIM_FAILED" }, 500);
+  }
   if (!job) return json({ skip: true, reason: "not_queued" });
 
   async function process() {
@@ -44,8 +52,15 @@ export async function handler(request: Request): Promise<Response> {
     }
     try {
       const meta = await fetchYoutubeMeta(job!.video_id);
+      const reserveTranscriptCredit = async () => {
+        if (!Deno.env.get("SUPADATA_API_KEY")) return;
+        const result = await supabase.rpc("reserve_beta_provider", { p_job_id: jobId, p_attempt: attemptId, p_resource: "supadata_credit", p_amount: 1 });
+        if (result.error) throw new LlmError(result.error.code === "P0040" ? "SERVICE_LIMIT" : "STALE_ATTEMPT");
+      };
+      await reserveTranscriptCredit();
       const duration = await fetchYoutubeDuration(job!.video_id);
       stage = "transcript";
+      await reserveTranscriptCredit();
       const transcript = await fetchFromSupadata(job!.video_id) ?? await fetchTranscript(job!.video_id);
       await transition("generating", { video_title: meta.title, video_thumbnail_url: meta.thumbnail, video_duration_sec: duration, transcript: transcript.transcript, transcript_source: transcript.source });
       const inputRate = Number(Deno.env.get("OPENAI_INPUT_USD_PER_MILLION"));
@@ -62,7 +77,7 @@ export async function handler(request: Request): Promise<Response> {
         if (Date.now() > deadline) throw new LlmError("JOB_TIMEOUT");
         const amount = (bytes * inputRate + outputLimit * outputRate) / 1e6;
         const reserved = await supabase.rpc("reserve_job_cost", { p_job_id: jobId, p_attempt: attemptId, p_amount: amount });
-        if (reserved.error) throw new LlmError(reserved.error.code === "P0035" ? "COST_LIMIT" : "STALE_ATTEMPT");
+        if (reserved.error) throw new LlmError(reserved.error.code === "P0040" ? "SERVICE_LIMIT" : reserved.error.code === "P0035" ? "COST_LIMIT" : "STALE_ATTEMPT");
       });
       stage = "outline";
       const outline = await generator.generateOutline(transcript.segments, meta.title, duration);
@@ -86,8 +101,9 @@ export async function handler(request: Request): Promise<Response> {
           : error.message.startsWith("SUPADATA_") ? "INTERNAL"
           : error.message === "DURATION_UNAVAILABLE" ? "DURATION_UNAVAILABLE"
           : error.message === "VIDEO_TOO_LONG" || error.message === "TRANSCRIPT_TOO_LONG" ? "VIDEO_TOO_LONG" : "NO_TRANSCRIPT"
-        : error instanceof LlmError ? ["COST_LIMIT", "JOB_TIMEOUT", "SOURCE_TOO_SHORT"].includes(error.message) ? error.message : "GENERATION_FAILED" : "INTERNAL";
-      const message = code === "TRANSCRIPT_PROVIDER_LIMITED" ? "자막 공급자의 속도 또는 사용량 제한에 도달했습니다."
+        : error instanceof LlmError ? ["SERVICE_LIMIT", "COST_LIMIT", "JOB_TIMEOUT", "SOURCE_TOO_SHORT"].includes(error.message) ? error.message : "GENERATION_FAILED" : "INTERNAL";
+      const message = code === "SERVICE_LIMIT" ? "무료 베타의 전체 처리 한도에 도달했습니다. 나중에 다시 시도해 주세요."
+        : code === "TRANSCRIPT_PROVIDER_LIMITED" ? "자막 공급자의 속도 또는 사용량 제한에 도달했습니다."
         : code === "VIDEO_TOO_LONG" ? "자막이 20분 구간 또는 처리 가능한 분량을 초과했습니다."
         : code === "NO_TRANSCRIPT" ? "자막을 가져오지 못했습니다. 자동 추출이 제한될 수 있습니다."
         : "변환에 실패했습니다. 잠시 후 다시 시도해 주세요.";

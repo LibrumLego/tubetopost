@@ -47,7 +47,7 @@ Deno.test("worker authenticates before DB access and validates request", async (
   assert((await handler(new Request("https://worker", { method: "POST" }))).status === 503);
 });
 
-for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "llm_error", "supadata_success", "supadata_401", "supadata_404", "supadata_429", "supadata_202", "supadata_206"] as const) {
+for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "llm_error", "supadata_success", "supadata_401", "supadata_404", "supadata_429", "supadata_202", "supadata_206", "supadata_budget", "model_budget", "service_busy"] as const) {
   Deno.test(`worker mocked pipeline: ${scenario}`, async () => {
     Deno.env.set("WORKER_SECRET", "test-worker-secret");
     Deno.env.set("OPENAI_INPUT_USD_PER_MILLION", "0.15");
@@ -58,7 +58,7 @@ for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "l
     const original = globalThis.fetch;
     const jobId = "11111111-1111-4111-8111-111111111111";
     const states: string[] = [];
-    let finalized = false, calls = 0, source: string | null = null, failureCode: string | null = null;
+    let finalized = false, calls = 0, credits = 0, providerCalls = 0, source: string | null = null, failureCode: string | null = null;
     const outline = { title: "Test title", sections: Array.from({ length: 2 }, (_, i) => ({ heading: `Section ${i}`, points: ["a", "b"], source_timestamp: 0 })) };
     globalThis.fetch = async (input, init) => {
       const request = new Request(input, init);
@@ -67,10 +67,15 @@ for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "l
         if (url.pathname.endsWith("/claim_job_by_id")) {
           states.push("transcribing");
           if (scenario === "claim_error") return Response.json({ message: "DB unavailable" }, { status: 500 });
+          if (scenario === "service_busy") return Response.json({ code: "P0041", message: "SERVICE_BUSY" }, { status: 400 });
           if (scenario === "duplicate") return Response.json([]);
           return Response.json([{ id: jobId, user_id: jobId, video_id: "dQw4w9WgXcQ" }]);
         }
-        if (url.pathname.endsWith("/reserve_job_cost")) return Response.json(null);
+        if (url.pathname.endsWith("/reserve_job_cost")) return scenario === "model_budget" ? Response.json({ code: "P0040", message: "SERVICE_LIMIT" }, { status: 400 }) : Response.json(null);
+        if (url.pathname.endsWith("/reserve_beta_provider")) {
+          credits++;
+          return scenario === "supadata_budget" ? Response.json({ code: "P0040", message: "SERVICE_LIMIT" }, { status: 400 }) : Response.json(null);
+        }
         if (url.pathname.endsWith("/jobs")) {
           const body = await request.json(); states.push(body.status);
           if (body.transcript_source) source = body.transcript_source;
@@ -84,7 +89,9 @@ for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "l
       }
       if (url.pathname === "/oembed") return Response.json({ title: "Video title" });
       if (url.hostname === "api.supadata.ai") {
-        if (url.pathname === "/v1/metadata") return Response.json({ platform: "youtube", id: "dQw4w9WgXcQ", media: { duration: 60 } });
+        providerCalls++;
+        if (url.pathname === "/v1/metadata") { assert(credits >= 1, "Metadata called before credit reservation"); return Response.json({ platform: "youtube", id: "dQw4w9WgXcQ", media: { duration: 60 } }); }
+        assert(credits >= 2, "Transcript called before credit reservation");
         assert(url.searchParams.get("mode") === "native");
         assert(url.searchParams.get("lang") === (Deno.env.get("SUPADATA_TRANSCRIPT_LANG") ?? "en"));
         const status = scenario === "supadata_success" ? 200 : Number(scenario.split("_")[1]);
@@ -111,6 +118,9 @@ for (const scenario of ["success", "no_captions", "duplicate", "claim_error", "l
       else if (scenario === "duplicate") assert(!finalized && states.length === 1);
       else if (scenario === "claim_error") assert(response.status === 500 && !finalized);
       else assert(states.at(-1) === "failed" && !finalized);
+      if (scenario === "supadata_budget") assert(providerCalls === 0 && calls === 0 && failureCode === "SERVICE_LIMIT");
+      if (scenario === "model_budget") assert(calls === 0 && failureCode === "SERVICE_LIMIT");
+      if (scenario === "service_busy") assert(response.status === 503 && providerCalls === 0 && calls === 0 && failureCode === "SERVICE_BUSY");
       if (scenario === "supadata_401") assert(failureCode === "INTERNAL");
       if (scenario === "supadata_429") assert(failureCode === "TRANSCRIPT_PROVIDER_LIMITED");
     } finally { globalThis.fetch = original; Deno.env.delete("SUPADATA_API_KEY"); }
