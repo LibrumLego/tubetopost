@@ -31,3 +31,11 @@ service role key만으로 `enqueue_job`을 호출하면 auth.uid()가 없어 사
 ## 남은 결정
 
 추가 영상 목록·공개할 글, 서비스 표시명과 구매 도메인은 아직 확정되지 않았다. 승인되지 않은 초안이나 다른 사용자의 글을 공개하지 않는다. Search Console 등록만으로 검색 색인·유입을 보장하지 않는다.
+
+## 검증 기록
+
+lint·프로덕션 빌드 통과 후 GitHub push로 운영 자동 배포를 완료했다. `node scripts/check-demo.mjs`로 공개 글 쇼케이스 링크·sitemap·robots·canonical·인증 처리를 검증했다. 별도 원격 대조에서 공개 글 2개가 모두 사이트맵에 있고 비공개 글 5개가 모두 빠지는 것을 확인했다. Article JSON-LD의 수정일·OG 이미지·Twitter Card도 확인했다.
+
+Supadata `/v1/me` 조회 결과 Free (100/mo), 사용 20 / 한도 100, 잔여 80 credits였다. 이 확인 과정에서 새 영상을 변환하지 않았다. 잔여량은 이후 사용에 따라 바뀐다.
+
+Google Search Console에서 현재 운영 주소의 URL 접두어 속성을 추가하고 HTML meta 방식으로 ‘소유권이 확인됨’을 확인했다. production 환경변수의 검증 토큰을 유지해야 한다.
