@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PostEditor } from "./post-editor";
+import { renderMarkdown } from "@/lib/markdown";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -30,7 +31,7 @@ async function EditPostContent({ params }: { params: Promise<{ id: string }> }) 
         slug: data.slug as string,
         title: data.title as string,
         content_markdown: data.content_markdown as string,
-        content_html: data.content_html as string,
+        content_html: renderMarkdown(data.content_markdown),
         is_public: data.is_public as boolean,
       }}
       appUrl={appUrl}

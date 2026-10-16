@@ -3,17 +3,19 @@ import { parseYouTubeUrl } from "@/lib/youtube/url";
 import { toJobSummary } from "@/lib/jobs/summary";
 import type { JobSummaryRow } from "@/types/jobs";
 import { dispatchJob } from "@/lib/jobs/dispatch";
+import { readJsonObject, RequestError } from "@/lib/security/request";
 
 export async function POST(request: Request) {
   const client = await authenticatedClient();
   if (!client) return apiError("UNAUTHENTICATED", "로그인이 필요합니다.", 401);
   let body;
-  try { body = await request.json(); } catch { return apiError("INVALID_URL", "유튜브 URL을 입력해 주세요.", 400); }
+  try { body = await readJsonObject(request, 8192); } catch (e) { return apiError("INVALID_URL", "유튜브 URL을 입력해 주세요.", e instanceof RequestError ? e.status : 400); }
   const video = parseYouTubeUrl(body?.youtube_url);
   if (!video) return apiError("INVALID_URL", "올바른 유튜브 영상 URL을 입력해 주세요.", 400);
   const { data, error } = await client.rpc("enqueue_job", { p_youtube_url: video.url, p_video_id: video.videoId });
   if (error) {
     switch (error.code) {
+      case "P0042": return apiError("RATE_LIMIT", "요청이 많습니다. 잠시 후 다시 시도해 주세요.", 429);
       case "P0040": return apiError("SERVICE_LIMIT", "무료 베타의 전체 처리 한도에 도달했습니다. 나중에 다시 시도해 주세요.", 429);
       case "P0041": return apiError("SERVICE_BUSY", "다른 변환을 처리 중입니다. 잠시 후 다시 시도해 주세요.", 409);
       case "P0030": return apiError("CONCURRENT_LIMIT", "진행 중인 변환이 있습니다. 완료 후 다시 요청해 주세요.", 409);

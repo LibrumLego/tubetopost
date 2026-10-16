@@ -1,5 +1,6 @@
 import { apiError, authenticatedClient } from "@/lib/api";
 import { renderMarkdown } from "@/lib/markdown";
+import { readJsonObject, RequestError } from "@/lib/security/request";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -13,6 +14,7 @@ function mapRpcError(code: string | undefined) {
     case "P0021": return apiError("FORBIDDEN", "접근 권한이 없습니다.", 403);
     case "P0013": return apiError("INVALID_REQUEST", "요청 형식이 올바르지 않습니다.", 400);
     case "P0036": return apiError("EDIT_CONFLICT", "다른 화면에서 글이 변경됐습니다. 최신 글을 불러와 확인해 주세요.", 409);
+    case "P0042": return apiError("RATE_LIMIT", "요청이 많습니다. 잠시 후 다시 시도해 주세요.", 429);
     default: return apiError("INTERNAL", "요청을 처리하지 못했습니다.", 500);
   }
 }
@@ -30,7 +32,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     .maybeSingle();
   if (error) return apiError("INTERNAL", "글을 조회하지 못했습니다.", 500);
   if (!data) return apiError("POST_NOT_FOUND", "글을 찾을 수 없습니다.", 404);
-  return Response.json({ post: data });
+  return Response.json({ post: { ...data, content_html: renderMarkdown(data.content_markdown) } });
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -40,7 +42,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!UUID_RE.test(id)) return apiError("INVALID_REQUEST", "요청 형식이 올바르지 않습니다.", 400);
 
   let body: unknown;
-  try { body = await request.json(); } catch { return apiError("INVALID_REQUEST", "요청 본문이 올바르지 않습니다.", 400); }
+  try { body = await readJsonObject(request, 210000); } catch (e) { return apiError("INVALID_REQUEST", "요청 본문이 올바르지 않습니다.", e instanceof RequestError ? e.status : 400); }
   if (!body || typeof body !== "object") return apiError("INVALID_REQUEST", "요청 본문이 올바르지 않습니다.", 400);
 
   const input = body as { title?: unknown; content_markdown?: unknown; is_public?: unknown; expected_revision?: unknown };
@@ -68,7 +70,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   const { data, error } = await client.rpc("update_post", { p_post_id: id, p_patch: patch });
   if (error) return mapRpcError(error.code);
-  return Response.json({ post: data });
+  return Response.json({ post: { ...data, content_html: renderMarkdown(data.content_markdown) } });
 }
 
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {

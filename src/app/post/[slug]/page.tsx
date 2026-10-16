@@ -5,6 +5,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { Button } from "@/components/ui/button";
 import { ViewTracker } from "./view-tracker";
 import { getSiteOrigin } from "@/lib/site-url";
+import { renderMarkdown } from "@/lib/markdown";
 
 export const instant = false;
 
@@ -15,7 +16,7 @@ interface Post {
   title: string;
   description: string;
   keywords: string[];
-  content_html: string;
+  content_markdown: string;
   cover_image_url: string | null;
   view_count: number;
   created_at: string;
@@ -28,7 +29,7 @@ async function fetchPost(slug: string): Promise<Post | null> {
   const supabase = await createPublicClient();
   const { data } = await supabase
     .from("posts")
-    .select("slug,title,description,keywords,content_html,cover_image_url,view_count,created_at,updated_at,is_public")
+    .select("slug,title,description,keywords,content_markdown,cover_image_url,view_count,created_at,updated_at,is_public")
     .eq("slug", slug)
     .maybeSingle();
   if (!data || !data.is_public) return null;
@@ -105,7 +106,7 @@ export default async function PublicPostPage({ params }: { params: Promise<{ slu
         </div>
       </header>
 
-      <div className="prose-tubetopost" dangerouslySetInnerHTML={{ __html: post.content_html }} />
+      <div className="prose-tubetopost" dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content_markdown) }} />
 
       <footer className="mt-16 rounded-lg border bg-muted/30 p-6 text-center">
         <p className="font-medium">이 글은 유튜브 영상에서 자동 변환되었습니다</p>
