@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { BetaWindow } from "@/components/shared/beta-window";
 
 export const metadata = { title: "무료 베타 안내 | TubeToPost" };
 
@@ -6,6 +8,7 @@ export default function BetaPage() {
   return (
     <main className="mx-auto w-full max-w-2xl space-y-8 px-4 py-14">
       <h1 className="text-3xl font-bold">무료 베타 이용 안내</h1>
+      <Suspense fallback={null}><BetaWindow /></Suspense>
       <section className="space-y-3 leading-relaxed">
         <h2 className="text-xl font-semibold">영상 내용을 글로 정리해 보세요</h2>
         <p>자막이 있는 20분 이하 유튜브 영상을 월 3회 무료로 변환할 수 있습니다. 강의 복습, 자료 정리, 콘텐츠 초안에 활용해 보세요. 실패한 변환은 완료 횟수에서 차감하지 않습니다. 재시도와 전체 처리량에는 별도 제한이 있습니다.</p>

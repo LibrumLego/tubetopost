@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function ConvertForm({ quotaRemaining, serviceLimited = false }: { quotaRemaining: number; serviceLimited?: boolean }) {
+export function ConvertForm({ quotaRemaining, serviceLimited = false, betaEnded = false }: { quotaRemaining: number; serviceLimited?: boolean; betaEnded?: boolean }) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -55,7 +55,7 @@ export function ConvertForm({ quotaRemaining, serviceLimited = false }: { quotaR
         </Button>
       </div>
       {error && <p id="convert-error" role="alert" className="text-sm text-destructive">{error}</p>}
-      {serviceLimited && <p role="status" className="text-sm text-muted-foreground">무료 베타의 전체 처리 한도에 도달했습니다. 나중에 페이지를 새로고침해 주세요.</p>}
+      {serviceLimited && <p role="status" className="text-sm text-muted-foreground">{betaEnded ? "공개 베타의 신규 변환 기간이 종료되었습니다. 기존 결과 확인과 의견 등록은 계속 이용할 수 있습니다." : "무료 베타의 전체 처리 한도에 도달했습니다. 나중에 페이지를 새로고침해 주세요."}</p>}
       {quotaRemaining <= 0 && (
         <p className="text-sm text-muted-foreground">이번 달 변환 한도를 모두 사용했습니다. 다음 달에 다시 시도해 주세요.</p>
       )}

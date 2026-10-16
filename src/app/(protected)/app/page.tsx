@@ -7,6 +7,7 @@ import { ConvertForm } from "./convert-form";
 import { JobCard } from "./job-card";
 import Link from "next/link";
 import { BetaRequest } from "./beta-request";
+import { BetaWindow } from "@/components/shared/beta-window";
 
 async function AppContent() {
   const user = await requireUser();
@@ -36,6 +37,7 @@ async function AppContent() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-10 p-4 sm:p-8">
+      <BetaWindow />
       <section className="space-y-4">
         <p className="text-sm text-muted-foreground">무료 베타 · 자막이 있는 20분 이하 영상 · <Link href="/beta" className="underline underline-offset-4">이용 안내</Link></p>
         <div className="flex items-center justify-between">
@@ -44,7 +46,7 @@ async function AppContent() {
             {profileRes.data?.plan === "developer" ? "개발자 테스트 · " : ""}이번 달 <span className="font-medium text-foreground">{usedThisMonth}/{monthlyQuota}</span> 사용
           </p>
         </div>
-        <ConvertForm quotaRemaining={quotaRemaining} serviceLimited={!capacityRes.data?.available} />
+        <ConvertForm quotaRemaining={quotaRemaining} serviceLimited={!capacityRes.data?.available} betaEnded={!capacityRes.data?.window_open} />
       </section>
       <BetaRequest initial={requestRes.data} />
 

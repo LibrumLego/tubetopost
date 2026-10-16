@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { createPublicClient } from "@/lib/supabase/public";
+import { BetaWindow } from "@/components/shared/beta-window";
 
 async function RecentPublicPosts() {
   const db = await createPublicClient();
@@ -54,6 +55,7 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="mx-auto max-w-5xl px-4 py-20 sm:py-28 text-center">
         <p className="mb-4 text-sm font-medium text-primary">무료 베타 · 영상에서 읽고 쓸 수 있는 글로</p>
+        <div className="mx-auto mb-8 max-w-xl text-left"><Suspense fallback={null}><BetaWindow /></Suspense></div>
         <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
           유튜브 영상, <span className="text-primary">블로그 글</span>로 10분 안에
         </h1>
