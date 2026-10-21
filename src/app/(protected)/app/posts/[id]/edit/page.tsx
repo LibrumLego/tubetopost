@@ -15,11 +15,15 @@ async function EditPostContent({ params }: { params: Promise<{ id: string }> }) 
   const supabase = await createClient();
   const { data } = await supabase
     .from("posts")
-    .select("id,user_id,slug,title,content_markdown,content_html,is_public,revision")
+    .select("id,user_id,job_id,slug,title,content_markdown,is_public,revision")
     .eq("id", id)
     .maybeSingle();
 
   if (!data || data.user_id !== user.id) notFound();
+
+  const { data: source } = await supabase.from("jobs")
+    .select("video_id,video_title,transcript")
+    .eq("id", data.job_id).eq("user_id", user.id).maybeSingle();
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
@@ -35,6 +39,7 @@ async function EditPostContent({ params }: { params: Promise<{ id: string }> }) 
         is_public: data.is_public as boolean,
       }}
       appUrl={appUrl}
+      source={source ? { videoId: source.video_id, title: source.video_title, transcript: source.transcript } : null}
     />
   );
 }

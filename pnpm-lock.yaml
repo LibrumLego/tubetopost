@@ -169,6 +169,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.9.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@fontsource-variable/noto-sans-kr':
+        specifier: ^5.3.1
+        version: 5.3.1
       '@supabase/ssr':
         specifier: ^0.12.7
         version: 0.12.7(@supabase/supabase-js@2.117.3)
@@ -491,6 +494,9 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
+
+  '@fontsource-variable/noto-sans-kr@5.3.1':
+    resolution: {integrity: sha512-f5aty6Qgk2LVU5TjCtXHxiYHqUWYW8f75ll0Chn8ucCqoOlIomcACUwf1V47yUt6wTdWZiGr3dcbQk+zlOspMA==}
 
   '@hono/node-server@2.1.4':
     resolution: {integrity: sha512-2g1qeHl4BduwDn6L8nkAvDrPUWPMlkQ//a5NhP/zIyaXKMjZNRV+cG9Csu+BiJFf6+68pqzjf4Hi5sJGKHuS1g==}
@@ -3611,6 +3617,8 @@ snapshots:
       react-dom: 19.3.0(react@19.3.0)
 
   '@floating-ui/utils@0.2.12': {}
+
+  '@fontsource-variable/noto-sans-kr@5.3.1': {}
 
   '@hono/node-server@2.1.4(hono@4.13.13)':
     dependencies:

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@fontsource-variable/noto-sans-kr";
 import { Header } from "@/components/shared/header";
 import { Suspense } from "react";
 import { BetaTracker } from "@/components/shared/beta-tracker";

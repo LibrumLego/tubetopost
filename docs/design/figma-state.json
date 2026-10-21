@@ -1,0 +1,79 @@
+{
+  "fileKey": "SVm9HT69e5zMYMV9MiR1d4",
+  "url": "https://www.figma.com/design/SVm9HT69e5zMYMV9MiR1d4",
+  "pageId": "0:1",
+  "foundations": {
+    "collectionId": "VariableCollectionId:3:2",
+    "mode": "3:0",
+    "semantic": {
+      "canvas": "VariableID:3:11",
+      "surface": "VariableID:3:12",
+      "ink": "VariableID:3:13",
+      "muted": "VariableID:3:14",
+      "line": "VariableID:3:15",
+      "brand": "VariableID:3:16",
+      "tint": "VariableID:3:17",
+      "success": "VariableID:3:18"
+    },
+    "radius": "VariableID:3:19",
+    "styles": {
+      "label": "S:55df899302243c204b613bae81a856e1ec7f2bd2,",
+      "small": "S:11496c1f92f1b1232c03c488c4fc721117cbf56a,",
+      "body": "S:cc2b4e3487154b4079e2838c6893e34590271dce,",
+      "editor": "S:1b30cc0d27d8a92fc49b3d3842d3aa3289da10f0,",
+      "heading": "S:9c690ff8667ba0dd7fce37963804c86a94daf9c1,",
+      "section": "S:78e4f9113d867ed6cbf4022446ede5c9c5ac1895,",
+      "page": "S:3d78111d1fc852baacc26dd1c04e7065cb7665b7,"
+    },
+    "createdVariableIds": [
+      "VariableID:3:3",
+      "VariableID:3:4",
+      "VariableID:3:5",
+      "VariableID:3:6",
+      "VariableID:3:7",
+      "VariableID:3:8",
+      "VariableID:3:9",
+      "VariableID:3:10",
+      "VariableID:3:11",
+      "VariableID:3:12",
+      "VariableID:3:13",
+      "VariableID:3:14",
+      "VariableID:3:15",
+      "VariableID:3:16",
+      "VariableID:3:17",
+      "VariableID:3:18",
+      "VariableID:3:19"
+    ],
+    "createdStyleIds": [
+      "S:55df899302243c204b613bae81a856e1ec7f2bd2,",
+      "S:11496c1f92f1b1232c03c488c4fc721117cbf56a,",
+      "S:cc2b4e3487154b4079e2838c6893e34590271dce,",
+      "S:1b30cc0d27d8a92fc49b3d3842d3aa3289da10f0,",
+      "S:9c690ff8667ba0dd7fce37963804c86a94daf9c1,",
+      "S:78e4f9113d867ed6cbf4022446ede5c9c5ac1895,",
+      "S:3d78111d1fc852baacc26dd1c04e7065cb7665b7,"
+    ],
+    "font": "Noto Sans KR"
+  },
+  "imported": {
+    "button": "2:283",
+    "input": "2:222",
+    "gap16": "VariableID:16bc6f84b6e7e20e4234ef79030ee580ec0f4505/564:258"
+  },
+  "step": "foundations",
+  "screens": [
+    {
+      "id": "5:179",
+      "name": "Desktop / Editor"
+    },
+    {
+      "id": "5:268",
+      "name": "Mobile / Edit"
+    },
+    {
+      "id": "5:352",
+      "name": "Mobile / Preview"
+    }
+  ],
+  "review": "Claude DESIGN_APPROVED after desktop/mobile PNG review"
+}
