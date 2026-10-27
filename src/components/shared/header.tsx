@@ -26,9 +26,14 @@ async function HeaderNav() {
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b bg-background/70 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="font-semibold">TubeToPost</Link>
+        <Link href="/" className="group inline-flex items-center gap-2 font-semibold">
+          <span className="relative flex h-6 w-6 items-center justify-center rounded-md bg-accent-brand text-[11px] font-bold text-accent-brand-foreground">
+            T
+          </span>
+          <span className="tracking-tight">TubeToPost</span>
+        </Link>
         <Suspense fallback={null}>
           <HeaderNav />
         </Suspense>

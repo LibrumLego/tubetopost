@@ -1,5 +1,16 @@
 # TubeToPost
 
+## 포트폴리오로 보는 순서
+
+이 프로젝트의 우선 목표는 수익화보다 **서비스를 기획·구현·배포하고 문제를 검증한 경험**을 보여주는 것입니다. AI 도구를 구현·검토 보조에 사용했으며, 실제 사용자 규모나 매출 성과는 주장하지 않습니다.
+
+1. [로그인 없는 예시 체험](https://tubetopost.vercel.app/demo): 원문 대조를 거친 글의 발췌와 화면 내 제목 편집. 외부 AI 호출·서버 저장·공개 전환을 실행하지 않습니다.
+2. [실제 공개 결과물](https://tubetopost.vercel.app/post/exploring-procrastin): 검수해 공개한 글을 읽습니다.
+3. [설계와 운영 경험](https://tubetopost.vercel.app/project): 비동기 작업의 attempt/lease, revision 저장 충돌, RLS·XSS와 비용 제어를 설명합니다.
+4. [신뢰성 검증](docs/reliability.md) · [보안 검증](docs/security-review-2026-10-16.md) · [배포 기록](docs/deployment.md): 구현 근거와 재현 방법을 확인합니다.
+
+위 포트폴리오 경로는 이번 변경에서 추가한 경로입니다. 배포 전에는 로컬에서 확인하며, 운영 반영은 GitHub/Vercel 배포 결과를 기준으로 합니다. 실제 변환에는 로그인과 운영 한도가 적용됩니다. 공개 베타 자동 연장·광고·결제 도입은 하지 않습니다. [현재 우선순위](docs/portfolio-direction.md)
+
 **YouTube 자막을 편집 가능한 한국어 블로그 초안으로 바꾸는 웹 서비스.**
 
 URL 입력부터 비동기 생성, 글 편집, 공개 페이지까지 구현했습니다. 생성 성공뿐 아니라 외부 자막 공급자 오류, 중단된 작업, 중복 실행, 편집 충돌과 비용 제한을 다룹니다.

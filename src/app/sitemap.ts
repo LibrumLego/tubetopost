@@ -5,7 +5,7 @@ import { getSiteOrigin } from "@/lib/site-url";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = getSiteOrigin();
   const db = await createPublicClient();
-  const entries: MetadataRoute.Sitemap = [{ url: origin }];
+  const entries: MetadataRoute.Sitemap = [{ url: origin }, { url: `${origin}/demo` }, { url: `${origin}/project` }];
   // Keyset avoids shifting offsets when posts are published/removed mid-request.
   // This is a live traversal, not a database snapshot of concurrent changes.
   let afterId: string | undefined;

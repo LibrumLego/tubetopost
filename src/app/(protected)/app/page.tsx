@@ -6,7 +6,6 @@ import type { JobSummaryRow } from "@/types/jobs";
 import { ConvertForm } from "./convert-form";
 import { JobCard } from "./job-card";
 import Link from "next/link";
-import { BetaRequest } from "./beta-request";
 import { BetaWindow } from "@/components/shared/beta-window";
 
 async function AppContent() {
@@ -15,7 +14,7 @@ async function AppContent() {
   const recovered = await supabase.rpc("recover_my_jobs");
   if (recovered.error) throw new Error("JOB_RECOVERY_FAILED");
 
-  const [profileRes, jobsRes, requestRes, capacityRes] = await Promise.all([
+  const [profileRes, jobsRes, capacityRes] = await Promise.all([
     supabase.from("profiles").select("plan, monthly_quota, used_this_month").eq("id", user.id).maybeSingle(),
     supabase
       .from("jobs")
@@ -25,10 +24,9 @@ async function AppContent() {
       .order("id", { ascending: false })
       .limit(20)
       .returns<JobSummaryRow[]>(),
-    supabase.from("beta_requests").select("use_case,expected_monthly,note").eq("user_id", user.id).maybeSingle(),
     supabase.rpc("beta_status"),
   ]);
-  if (profileRes.error || jobsRes.error || requestRes.error || capacityRes.error) throw new Error("APP_DATA_UNAVAILABLE");
+  if (profileRes.error || jobsRes.error || capacityRes.error) throw new Error("APP_DATA_UNAVAILABLE");
 
   const monthlyQuota = profileRes.data?.monthly_quota ?? 0;
   const usedThisMonth = profileRes.data?.used_this_month ?? 0;
@@ -39,7 +37,7 @@ async function AppContent() {
     <div className="mx-auto max-w-4xl space-y-10 p-4 sm:p-8">
       <BetaWindow />
       <section className="space-y-4">
-        <p className="text-sm text-muted-foreground">무료 베타 · 자막이 있는 20분 이하 영상 · <Link href="/beta" className="underline underline-offset-4">이용 안내</Link></p>
+        <p className="text-sm text-muted-foreground">포트폴리오 운영 · 자막이 있는 20분 이하 영상 · <Link href="/beta" className="underline underline-offset-4">실제 변환 이용 안내</Link></p>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">변환 시작</h1>
           <p className="text-sm text-muted-foreground">
@@ -48,7 +46,6 @@ async function AppContent() {
         </div>
         <ConvertForm quotaRemaining={quotaRemaining} serviceLimited={!capacityRes.data?.available} betaEnded={!capacityRes.data?.window_open} />
       </section>
-      <BetaRequest initial={requestRes.data} />
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">최근 작업</h2>
