@@ -1,8 +1,16 @@
 # TubeToPost
 
+<p align="right"><sub>한국어 · <a href="README.en.md">English</a></sub></p>
+
 **YouTube 자막을 검수하고 편집할 수 있는 한국어 블로그 초안으로 바꾸는 웹 서비스**
 
 영상 URL 입력부터 자막 추출, 비동기 생성, 글 편집과 공개 페이지까지 연결했습니다. 생성 결과를 완성된 사실로 취급하지 않고, 사람이 원문과 대조해 편집한 뒤 공개하는 흐름을 제공합니다.
+
+<p>
+  <a href="https://tubetopost.vercel.app/demo"><img src="https://img.shields.io/badge/Live%20Demo-%EC%B2%B4%ED%97%98-6554C0?style=for-the-badge" alt="라이브 데모"></a>
+  <a href="https://tubetopost.vercel.app/project"><img src="https://img.shields.io/badge/Case%20Study-%EA%B5%AC%ED%98%84%20%EC%82%AC%EB%A1%80-334155?style=for-the-badge" alt="기술 사례"></a>
+  <a href="https://github.com/LibrumLego/tubetopost"><img src="https://img.shields.io/badge/Source-GitHub-181717?style=for-the-badge&logo=github" alt="GitHub 소스"></a>
+</p>
 
 ## 먼저 둘러보기
 
@@ -11,7 +19,25 @@
 3. [기술 사례 설명](https://tubetopost.vercel.app/project) — 비동기 작업, 저장 충돌, 권한과 비용 제어의 설계 선택을 확인합니다.
 4. [GitHub 소스 코드](https://github.com/LibrumLego/tubetopost)
 
-![검수 안내와 강연 구간 링크가 포함된 공개 글 화면](docs/images/public-demo.png)
+## 제품 화면
+
+<table>
+  <tr>
+    <td width="58%"><a href="https://tubetopost.vercel.app/demo"><img src="docs/design/editor-desktop.png" alt="초안 편집과 읽기 미리보기를 함께 보여 주는 데스크톱 편집기" width="100%"></a></td>
+    <td width="42%"><a href="https://tubetopost.vercel.app/post/exploring-procrastin"><img src="docs/images/public-demo.png" alt="검수 안내와 강연 구간 링크가 포함된 공개 글" width="100%"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>초안 편집기와 읽기 미리보기</sub></td>
+    <td align="center"><sub>원문 대조 후 공개한 글</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16.4.3-000000?logo=nextdotjs&logoColor=white" alt="Next.js 16.4.3">
+  <img src="https://img.shields.io/badge/React-19.3.0-149ECA?logo=react&logoColor=white" alt="React 19.3.0">
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5">
+  <img src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20Edge%20Functions-3FCF8E?logo=supabase&logoColor=white" alt="Supabase Postgres and Edge Functions">
+</p>
 
 ## 구현에서 다룬 문제
 
